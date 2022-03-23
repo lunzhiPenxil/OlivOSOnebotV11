@@ -1,0 +1,17 @@
+{
+    "name" : "OlivOSOnebotV11协议端",
+    "author" : "lunzhiPenxil",
+    "namespace" : "OlivOSOnebotV11",
+    "message_mode" : "olivos_para",
+    "version" : "0.9.0",
+    "svn" : 14,
+    "compatible_svn" : 94,
+    "priority" : 30000,
+    "support" : [
+        {
+            "sdk" : "all",
+            "platform" : "all",
+            "model" : "all"
+        }
+    ]
+}

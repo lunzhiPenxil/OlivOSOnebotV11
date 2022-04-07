@@ -11,6 +11,7 @@
 import json
 import traceback
 import os
+import time
 
 import OlivOS
 import OlivOSOnebotV11
@@ -40,6 +41,25 @@ def initBotInfo():
     except:
         res = None
     return res
+
+def fakeHeartbeatGen():
+    while True:
+        for botHash in OlivOSOnebotV11.main.confDict:
+            if botHash in OlivOSOnebotV11.main.ProcObj.Proc_data['bot_info_dict']:
+                fake_plugin_event = OlivOS.API.Event(
+                    OlivOS.contentAPI.fake_sdk_event(
+                        bot_info = OlivOSOnebotV11.main.ProcObj.Proc_data['bot_info_dict'][botHash],
+                        fakename = OlivOSOnebotV11.main.pluginName
+                    ),
+                    OlivOSOnebotV11.main.ProcObj.log
+                )
+            rxEvent = OlivOSOnebotV11.eventRouter.rxEvent(
+                'heartbeat',
+                fake_plugin_event,
+                OlivOSOnebotV11.main.ProcObj
+            )
+            rxEvent.doRouter()
+        time.sleep(5)
 
 class rxEvent(object):
     def __init__(self, funcType, plugin_event, Proc):
@@ -103,7 +123,32 @@ def paraRvMapper(paraList):
     )
     return res
 
+def updateHostIdDict(botHash, hostId, groupId):
+    if hostId != None:
+        if botHash not in OlivOSOnebotV11.main.hostIdDict:
+            OlivOSOnebotV11.main.hostIdDict[botHash] = {}
+        OlivOSOnebotV11.main.hostIdDict[botHash][str(groupId)] = str(hostId)
+
+def getHostIdDict(botHash, groupId):
+    res = None
+    print(OlivOSOnebotV11.main.hostIdDict)
+    if botHash in OlivOSOnebotV11.main.hostIdDict:
+        if str(groupId) in OlivOSOnebotV11.main.hostIdDict[botHash]:
+            res = OlivOSOnebotV11.main.hostIdDict[botHash][str(groupId)]
+    return res
+
 class eventRouter(object):
+    def heartbeat(eventObj):
+        eventObj.rvData = {}
+        eventObj.rvData['post_type'] = 'meta_event'
+        eventObj.rvData['meta_event_type'] = 'heartbeat'
+        eventObj.rvData['time'] = int(time.time())
+        eventObj.rvData['self_id'] = int(eventObj.plugin_event.base_info['self_id'])
+        eventObj.rvData['status'] = {}
+        eventObj.rvData['status']['enable'] = True
+        eventObj.rvData['status']['interval'] = 5000
+        eventObj.rvData['interval'] = 5000
+
     def group_message(eventObj):
         eventObj.rvData = {}
         eventObj.rvData['time'] = eventObj.plugin_event.base_info['time']
@@ -121,6 +166,11 @@ class eventRouter(object):
         eventObj.rvData['sender'] = {}
         eventObj.rvData['sender']['user_id'] = eventObj.plugin_event.data.sender['id']
         eventObj.rvData['sender']['nickname'] = eventObj.plugin_event.data.sender['name']
+        updateHostIdDict(
+            botHash = eventObj.plugin_event.bot_info.hash,
+            hostId = eventObj.plugin_event.data.host_id,
+            groupId = eventObj.plugin_event.data.group_id
+        )
 
     def private_message(eventObj):
         eventObj.rvData = {}
@@ -410,17 +460,32 @@ class actionRouter(object):
             target_id = str(eventObj.params['group_id']),
             message = paraRvMapper(
                 eventObj.params['message']
+            ),
+            host_id = getHostIdDict(
+                botHash = eventObj.plugin_event.bot_info.hash,
+                groupId = str(eventObj.params['group_id'])
             )
         )
         eventObj.rvData = None
 
     def send_msg(eventObj):
+        tmp_hostId = None
+        tmp_targetId = None
+        if eventObj.params['message_type'] == 'group':
+            tmp_targetId = str(eventObj.params['group_id'])
+            tmp_hostId = getHostIdDict(
+                botHash = eventObj.plugin_event.bot_info.hash,
+                groupId = str(eventObj.params['group_id'])
+            )
+        else:
+            tmp_targetId = str(eventObj.params['user_id'])
         res = eventObj.plugin_event.send(
             send_type = eventObj.params['message_type'],
-            target_id = str(eventObj.params['group_id']),
+            target_id = tmp_targetId,
             message = paraRvMapper(
                 eventObj.params['message']
-            )
+            ),
+            host_id = tmp_hostId
         )
         eventObj.rvData = None
 

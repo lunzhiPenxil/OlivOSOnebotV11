@@ -18,6 +18,8 @@ botInfoDict = {}
 
 confDict = {}
 
+hostIdDict = {}
+
 pluginName = 'OlivOSOnebotV11协议端'
 
 class Event(object):
@@ -49,6 +51,10 @@ class Event(object):
                 target = OlivOSOnebotV11.websocketServer.init_websocket,
                 args = (confDict[server_this],)
             ).start()
+        threading.Thread(
+            target = OlivOSOnebotV11.eventRouter.fakeHeartbeatGen,
+            args = ()
+        ).start()
 
     def private_message(plugin_event, Proc):
         rxEvent = OlivOSOnebotV11.eventRouter.rxEvent('private_message', plugin_event, Proc)

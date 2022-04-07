@@ -131,7 +131,6 @@ def updateHostIdDict(botHash, hostId, groupId):
 
 def getHostIdDict(botHash, groupId):
     res = None
-    print(OlivOSOnebotV11.main.hostIdDict)
     if botHash in OlivOSOnebotV11.main.hostIdDict:
         if str(groupId) in OlivOSOnebotV11.main.hostIdDict[botHash]:
             res = OlivOSOnebotV11.main.hostIdDict[botHash][str(groupId)]

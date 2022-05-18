@@ -80,7 +80,7 @@ def init_websocket(server_this):
             str(OlivOSOnebotV11.main.botInfoDict[server_this['hash']].platform['platform']),
             str(OlivOSOnebotV11.main.botInfoDict[server_this['hash']].id)
         )
-    OlivOSOnebotV11.main.ProcObj.log(2, '账号 [' + tmp_bot_hash_info + '] 运行于Websocket，请使用 [ws://127.0.0.1:' + str(server_this['port']) + '] 进行连接', [
+    OlivOSOnebotV11.main.ProcObj.log(2, '账号 [' + tmp_bot_hash_info + '] 运行于Websocket，请使用 [ws://localhost:' + str(server_this['port']) + '] 进行连接', [
         ('OlivOSOnebotV11', 'default')
     ])
     server.serveforever()

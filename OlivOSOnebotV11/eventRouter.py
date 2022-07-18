@@ -20,8 +20,7 @@ def releaseDir(dir_path):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
-def initBotInfo(default_hash = None, default_port = 55009):
-    tmp_default_hash = default_hash
+def initBotInfo(bot_info:dict, default_port = 55009):
     tmp_default_port = default_port
     res = None
     releaseDir('./plugin')
@@ -44,11 +43,17 @@ def initBotInfo(default_hash = None, default_port = 55009):
         res = None
     if res == None:
         res = {}
-        if tmp_default_hash != None:
-            res[tmp_default_hash] = {
-                'hash': tmp_default_hash,
+    for bot_info_hash in bot_info:
+        if bot_info_hash not in res:
+            res[bot_info_hash] = {
+                'hash': bot_info_hash,
                 'port': tmp_default_port
             }
+    res_new = {}
+    for bot_info_hash in res:
+        if bot_info_hash in bot_info:
+            res_new[bot_info_hash] = res[bot_info_hash]
+    res = res_new
     return res
 
 def saveBotInfo(data):

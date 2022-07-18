@@ -2,16 +2,23 @@
     "name" : "OlivOSOnebotV11协议端",
     "author" : "lunzhiPenxil",
     "namespace" : "OlivOSOnebotV11",
+    "info" : "基于OlivOS的OneBot协议端，可以基于OlivOS实现多后端对多账号、多平台的支持。",
     "message_mode" : "olivos_para",
-    "version" : "0.9.0",
-    "svn" : 14,
-    "compatible_svn" : 94,
-    "priority" : 30000,
+    "version" : "0.9.1",
+    "svn" : 15,
+    "compatible_svn" : 100,
+    "priority" : 50000,
     "support" : [
         {
             "sdk" : "all",
             "platform" : "all",
             "model" : "all"
+        }
+    ],
+    "menu_config": [
+        {
+            "title": "修改配置",
+            "event": "OlivOSOnebotV11_001"
         }
     ]
 }

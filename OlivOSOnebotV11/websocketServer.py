@@ -10,6 +10,8 @@
 
 import threading
 import traceback
+import socket
+from contextlib import closing
 
 import OlivOSOnebotV11
 
@@ -18,8 +20,29 @@ clientList = []
 clientDict = {}
 clientMapDict = {}
 
+def isInuse(ip, port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    flag = True
+    try:
+        s.connect((ip, port))
+        s.shutdown(2)
+        flag = True
+    except:
+        flag = False
+    return flag
+
+def get_free_port():
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s: 
+        s.bind(('', 0)) 
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
+        return s.getsockname()[1] 
+
 def start_websocket(confDict):
     for server_this in confDict:
+        if confDict[server_this]['port'] == None or (
+            False and isInuse('127.0.0.1', confDict[server_this]['port'])
+        ):
+            confDict[server_this]['port'] = get_free_port()
         threading.Thread(
             target = OlivOSOnebotV11.websocketServer.init_websocket,
             args = (confDict[server_this],)

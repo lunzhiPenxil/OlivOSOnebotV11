@@ -20,7 +20,9 @@ def releaseDir(dir_path):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
-def initBotInfo():
+def initBotInfo(default_hash = None, default_port = 55009):
+    tmp_default_hash = default_hash
+    tmp_default_port = default_port
     res = None
     releaseDir('./plugin')
     releaseDir('./plugin/data')
@@ -40,25 +42,55 @@ def initBotInfo():
                     }
     except:
         res = None
+    if res == None:
+        res = {}
+        if tmp_default_hash != None:
+            res[tmp_default_hash] = {
+                'hash': tmp_default_hash,
+                'port': tmp_default_port
+            }
     return res
+
+def saveBotInfo(data):
+    releaseDir('./plugin')
+    releaseDir('./plugin/data')
+    releaseDir('./plugin/data/OlivOSOnebotV11')
+    path = './plugin/data/OlivOSOnebotV11/config.json'
+    try:
+        res = {
+            'route': []
+        }
+        for route_this in data:
+            res['route'].append(data[route_this])
+        with open(path, 'w', encoding = 'utf-8') as conf_f:
+            conf_f.write(
+                json.dumps(
+                    obj = res,
+                    ensure_ascii = False,
+                    indent = 4
+                )
+            )
+    except:
+        pass
 
 def fakeHeartbeatGen():
     while True:
         for botHash in OlivOSOnebotV11.main.confDict:
             if botHash in OlivOSOnebotV11.main.ProcObj.Proc_data['bot_info_dict']:
-                fake_plugin_event = OlivOS.API.Event(
-                    OlivOS.contentAPI.fake_sdk_event(
-                        bot_info = OlivOSOnebotV11.main.ProcObj.Proc_data['bot_info_dict'][botHash],
-                        fakename = OlivOSOnebotV11.main.pluginName
-                    ),
-                    OlivOSOnebotV11.main.ProcObj.log
+                if botHash in OlivOSOnebotV11.main.ProcObj.Proc_data['bot_info_dict']:
+                    fake_plugin_event = OlivOS.API.Event(
+                        OlivOS.contentAPI.fake_sdk_event(
+                            bot_info = OlivOSOnebotV11.main.ProcObj.Proc_data['bot_info_dict'][botHash],
+                            fakename = OlivOSOnebotV11.main.pluginName
+                        ),
+                        OlivOSOnebotV11.main.ProcObj.log
+                    )
+                rxEvent = OlivOSOnebotV11.eventRouter.rxEvent(
+                    'heartbeat',
+                    fake_plugin_event,
+                    OlivOSOnebotV11.main.ProcObj
                 )
-            rxEvent = OlivOSOnebotV11.eventRouter.rxEvent(
-                'heartbeat',
-                fake_plugin_event,
-                OlivOSOnebotV11.main.ProcObj
-            )
-            rxEvent.doRouter()
+                rxEvent.doRouter()
         time.sleep(5)
 
 class rxEvent(object):

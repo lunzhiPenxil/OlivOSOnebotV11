@@ -8,12 +8,26 @@
 @Desc      :   None
 '''
 
+import threading
+import traceback
+
 import OlivOSOnebotV11
 
 server = None
 clientList = []
 clientDict = {}
 clientMapDict = {}
+
+def start_websocket(confDict):
+    for server_this in confDict:
+        threading.Thread(
+            target = OlivOSOnebotV11.websocketServer.init_websocket,
+            args = (confDict[server_this],)
+        ).start()
+    threading.Thread(
+        target = OlivOSOnebotV11.eventRouter.fakeHeartbeatGen,
+        args = ()
+    ).start()
 
 def init_websocket(server_this):
     global server

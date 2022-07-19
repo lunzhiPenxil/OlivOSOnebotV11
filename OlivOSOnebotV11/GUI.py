@@ -94,10 +94,10 @@ class ConfigUI(object):
         self.UIObject['tree'] = ttk.Treeview(self.UIObject['root'])
         self.UIObject['tree']['show'] = 'headings'
         self.UIObject['tree']['columns'] = ('KEY', 'PORT')
-        self.UIObject['tree'].column('KEY', width = 360)
-        self.UIObject['tree'].column('PORT', width = 90)
+        self.UIObject['tree'].column('KEY', width = 270)
+        self.UIObject['tree'].column('PORT', width = 180)
         self.UIObject['tree'].heading('KEY', text = '账号')
-        self.UIObject['tree'].heading('PORT', text = '端口')
+        self.UIObject['tree'].heading('PORT', text = '地址')
         self.UIObject['tree']['selectmode'] = 'browse'
         #self.UIObject['tree_rightkey_menu'] = tkinter.Menu(self.UIObject['root'], tearoff = False)
         self.UIObject['tree'].bind('<<TreeviewSelect>>', lambda x : self.treeSelect('tree', x))
@@ -128,6 +128,9 @@ class ConfigUI(object):
                     'port': OlivOSOnebotV11.main.confDict[hash]['port']
                 }
 
+    def get_ws_url(self, port):
+        return 'ws://localhost:%s' % str(port)
+
     def tree_load(self):
         tmp_tree_item_children = self.UIObject['tree'].get_children()
         for tmp_tree_item_this in tmp_tree_item_children:
@@ -145,7 +148,7 @@ class ConfigUI(object):
                         text = hash,
                         values=(
                             key,
-                            str(self.routeData[hash]['port'])
+                            self.get_ws_url(str(self.routeData[hash]['port']))
                         )
                     )
                 except:
@@ -235,7 +238,7 @@ class ConfigUI(object):
             try:
                 port = self.UIData['root_Entry_PORT_StringVar'].get()
                 self.routeData[force['text']]['port'] = int(port)
-                self.UIObject['tree'].set(selection, column = 'PORT', value = port)
+                self.UIObject['tree'].set(selection, column = 'PORT', value = self.get_ws_url(port))
                 #self.tree_load()
             except:
                 pass

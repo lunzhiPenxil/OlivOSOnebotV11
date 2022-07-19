@@ -42,7 +42,7 @@ class ConfigUI(object):
 
     def start(self):
         self.UIObject['root'] = tkinter.Tk()
-        self.UIObject['root'].title('程心自定义')
+        self.UIObject['root'].title('OlivOS OnebotV11 协议端')
         self.UIObject['root'].geometry('518x400')
         self.UIObject['root'].resizable(
             width = False,

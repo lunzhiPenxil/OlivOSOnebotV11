@@ -200,8 +200,11 @@ class eventRouter(object):
         eventObj.rvData['anonymous'] = None
         eventObj.rvData['font'] = eventObj.plugin_event.data.font
         eventObj.rvData['sender'] = {}
-        eventObj.rvData['sender']['user_id'] = eventObj.plugin_event.data.sender['id']
+        eventObj.rvData['sender']['user_id'] = int(eventObj.plugin_event.data.sender['id'])
         eventObj.rvData['sender']['nickname'] = eventObj.plugin_event.data.sender['name']
+        eventObj.rvData['sender']['role'] = 'owner'
+        if 'role' in eventObj.plugin_event.data.sender:
+            eventObj.rvData['sender']['role'] = eventObj.plugin_event.data.sender['role']
         updateHostIdDict(
             botHash = eventObj.plugin_event.bot_info.hash,
             hostId = eventObj.plugin_event.data.host_id,
@@ -221,7 +224,7 @@ class eventRouter(object):
         eventObj.rvData['raw_message'] = paraMapper(eventObj.plugin_event.data.raw_message.data)
         eventObj.rvData['font'] = eventObj.plugin_event.data.font
         eventObj.rvData['sender'] = {}
-        eventObj.rvData['sender']['user_id'] = eventObj.plugin_event.data.sender['id']
+        eventObj.rvData['sender']['user_id'] = int(eventObj.plugin_event.data.sender['id'])
         eventObj.rvData['sender']['nickname'] = eventObj.plugin_event.data.sender['name']
 
 class txEvent(object):
@@ -270,7 +273,6 @@ class txEvent(object):
                 )
 
     def doRouter(self):
-        #print(self.json)
         try:
             if self.active:
                 if hasattr(actionRouter, self.funcType):

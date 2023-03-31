@@ -178,8 +178,8 @@ class eventRouter(object):
         eventObj.rvData = {}
         eventObj.rvData['post_type'] = 'meta_event'
         eventObj.rvData['meta_event_type'] = 'heartbeat'
-        eventObj.rvData['time'] = int(time.time())
-        eventObj.rvData['self_id'] = int(eventObj.plugin_event.base_info['self_id'])
+        eventObj.rvData['time'] = backport_int(time.time())
+        eventObj.rvData['self_id'] = backport_int(eventObj.plugin_event.base_info['self_id'])
         eventObj.rvData['status'] = {}
         eventObj.rvData['status']['enable'] = True
         eventObj.rvData['status']['interval'] = 5000
@@ -188,19 +188,19 @@ class eventRouter(object):
     def group_message(eventObj):
         eventObj.rvData = {}
         eventObj.rvData['time'] = eventObj.plugin_event.base_info['time']
-        eventObj.rvData['self_id'] = int(eventObj.plugin_event.base_info['self_id'])
+        eventObj.rvData['self_id'] = backport_int(eventObj.plugin_event.base_info['self_id'])
         eventObj.rvData['post_type'] = 'message'
         eventObj.rvData['message_type'] = 'group'
         eventObj.rvData['sub_type'] = 'normal'
         eventObj.rvData['message_id'] = eventObj.plugin_event.data.message_id
-        eventObj.rvData['user_id'] = int(eventObj.plugin_event.data.user_id)
-        eventObj.rvData['group_id'] = int(eventObj.plugin_event.data.group_id)
+        eventObj.rvData['user_id'] = backport_int(eventObj.plugin_event.data.user_id)
+        eventObj.rvData['group_id'] = backport_int(eventObj.plugin_event.data.group_id)
         eventObj.rvData['message'] = paraMapper(eventObj.plugin_event.data.message.data)
         eventObj.rvData['raw_message'] = paraMapper(eventObj.plugin_event.data.raw_message.data)
         eventObj.rvData['anonymous'] = None
         eventObj.rvData['font'] = eventObj.plugin_event.data.font
         eventObj.rvData['sender'] = {}
-        eventObj.rvData['sender']['user_id'] = int(eventObj.plugin_event.data.sender['id'])
+        eventObj.rvData['sender']['user_id'] = backport_int(eventObj.plugin_event.data.sender['id'])
         eventObj.rvData['sender']['nickname'] = eventObj.plugin_event.data.sender['name']
         eventObj.rvData['sender']['role'] = 'owner'
         if 'role' in eventObj.plugin_event.data.sender:
@@ -214,17 +214,17 @@ class eventRouter(object):
     def private_message(eventObj):
         eventObj.rvData = {}
         eventObj.rvData['time'] = eventObj.plugin_event.base_info['time']
-        eventObj.rvData['self_id'] = int(eventObj.plugin_event.base_info['self_id'])
+        eventObj.rvData['self_id'] = backport_int(eventObj.plugin_event.base_info['self_id'])
         eventObj.rvData['post_type'] = 'message'
         eventObj.rvData['message_type'] = 'private'
         eventObj.rvData['sub_type'] = eventObj.plugin_event.data.sub_type
         eventObj.rvData['message_id'] = eventObj.plugin_event.data.message_id
-        eventObj.rvData['user_id'] = int(eventObj.plugin_event.data.user_id)
+        eventObj.rvData['user_id'] = backport_int(eventObj.plugin_event.data.user_id)
         eventObj.rvData['message'] = paraMapper(eventObj.plugin_event.data.message.data)
         eventObj.rvData['raw_message'] = paraMapper(eventObj.plugin_event.data.raw_message.data)
         eventObj.rvData['font'] = eventObj.plugin_event.data.font
         eventObj.rvData['sender'] = {}
-        eventObj.rvData['sender']['user_id'] = int(eventObj.plugin_event.data.sender['id'])
+        eventObj.rvData['sender']['user_id'] = backport_int(eventObj.plugin_event.data.sender['id'])
         eventObj.rvData['sender']['nickname'] = eventObj.plugin_event.data.sender['name']
 
 class txEvent(object):
@@ -306,7 +306,7 @@ class actionRouter(object):
             eventObj.rvData['message_id'] = res['data']['message_id']
             eventObj.rvData['real_id'] = res['data']['id']
             eventObj.rvData['sender'] = {}
-            eventObj.rvData['sender']['user_id'] = int(res['data']['sender']['id'])
+            eventObj.rvData['sender']['user_id'] = backport_int(res['data']['sender']['id'])
             eventObj.rvData['sender']['nickname'] = res['data']['sender']['name']
             eventObj.rvData['time'] = res['data']['time']
             eventObj.rvData['message'] = res['data']['message']
@@ -320,7 +320,7 @@ class actionRouter(object):
             eventObj.active = False
         elif res['active']:
             eventObj.rvData = {}
-            eventObj.rvData['user_id'] = int(res['data']['id'])
+            eventObj.rvData['user_id'] = backport_int(res['data']['id'])
             eventObj.rvData['nickname'] = res['data']['name']
         else:
             eventObj.active = False
@@ -333,7 +333,7 @@ class actionRouter(object):
             eventObj.rvData = []
             for data_this in res['data']:
                 tmp_data_this = {}
-                tmp_data_this['group_id'] = int(data_this['id'])
+                tmp_data_this['group_id'] = backport_int(data_this['id'])
                 tmp_data_this['group_name'] = data_this['name']
                 tmp_data_this['group_memo'] = data_this['memo']
                 tmp_data_this['member_count'] = data_this['member_count']
@@ -350,7 +350,7 @@ class actionRouter(object):
             eventObj.rvData = {}
         elif res['active']:
             eventObj.rvData = {}
-            eventObj.rvData['group_id'] = int(res['data']['id'])
+            eventObj.rvData['group_id'] = backport_int(res['data']['id'])
             eventObj.rvData['group_name'] = res['data']['name']
             eventObj.rvData['group_memo'] = res['data']['memo']
             eventObj.rvData['member_count'] = res['data']['member_count']
@@ -366,7 +366,7 @@ class actionRouter(object):
             eventObj.rvData = {}
         elif res['active']:
             eventObj.rvData = {}
-            eventObj.rvData['user_id'] = int(res['data']['id'])
+            eventObj.rvData['user_id'] = backport_int(res['data']['id'])
             eventObj.rvData['nickname'] = res['data']['name']
         else:
             eventObj.active = False
@@ -379,7 +379,7 @@ class actionRouter(object):
             eventObj.rvData = []
             for data_this in res['data']:
                 tmp_data_this = {}
-                tmp_data_this['user_id'] = int(data_this['id'])
+                tmp_data_this['user_id'] = backport_int(data_this['id'])
                 tmp_data_this['nickname'] = data_this['name']
                 eventObj.rvData.append(tmp_data_this)
         else:
@@ -395,7 +395,7 @@ class actionRouter(object):
         elif res['active']:
             eventObj.rvData = {}
             eventObj.rvData['group_id'] = res['data']['group_id']
-            eventObj.rvData['user_id'] = int(res['data']['id'])
+            eventObj.rvData['user_id'] = backport_int(res['data']['id'])
             eventObj.rvData['join_time'] = res['data']['times']['join_time']
             eventObj.rvData['last_sent_time'] = res['data']['times']['last_sent_time']
             eventObj.rvData['shut_up_timestamp'] = res['data']['times']['shut_up_timestamp']
@@ -416,7 +416,7 @@ class actionRouter(object):
             for data_this in res['data']:
                 tmp_data_this = {}
                 tmp_data_this['group_id'] = data_this['group_id']
-                tmp_data_this['user_id'] = int(data_this['id'])
+                tmp_data_this['user_id'] = backport_int(data_this['id'])
                 tmp_data_this['join_time'] = data_this['times']['join_time']
                 tmp_data_this['last_sent_time'] = data_this['times']['last_sent_time']
                 tmp_data_this['shut_up_timestamp'] = data_this['times']['shut_up_timestamp']
@@ -672,3 +672,11 @@ class actionRouter(object):
             tmp_val['reason'] = eventObj.params['reason']
         res = eventObj.plugin_event.set_group_add_request(**tmp_val)
         eventObj.rvData = None
+
+def backport_int(src):
+    res = src
+    try:
+        res = int(res)
+    except:
+        res = res
+    return res

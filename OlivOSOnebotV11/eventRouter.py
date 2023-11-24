@@ -12,6 +12,7 @@ import json
 import traceback
 import os
 import time
+import hashlib
 
 import OlivOS
 import OlivOSOnebotV11
@@ -49,6 +50,7 @@ def initBotInfo(bot_info:dict, default_port = 55009):
                 'hash': bot_info_hash,
                 'port': tmp_default_port
             }
+        OlivOSOnebotV11.main.eventRegDict[bot_info_hash] = {}
     res_new = {}
     for bot_info_hash in res:
         if bot_info_hash in bot_info:
@@ -173,59 +175,97 @@ def getHostIdDict(botHash, groupId):
             res = OlivOSOnebotV11.main.hostIdDict[botHash][str(groupId)]
     return res
 
+def setMappingIdDict(botHash:str, id):
+    try:
+        targetId = int(id)
+    except:
+        targetId = None
+    if targetId is None:
+        targetId_hash = hashlib.new('md5')
+        targetId_hash.update(str(id).encode(encoding='UTF-8'))
+        targetId = int(int(targetId_hash.hexdigest(), 16) % 10000000000)
+    OlivOSOnebotV11.main.mappingIdDict.setdefault(botHash, {})
+    if str(targetId) != str(id):
+        OlivOSOnebotV11.main.mappingIdDict[botHash][str(targetId)] = id
+    return targetId
+
+def getMappingIdDict(botHash:str, id):
+    return OlivOSOnebotV11.main.mappingIdDict.get(botHash, {}).get(str(id), id)
+
+def updateEventRegDict(botHash:str, key:str, event):
+    OlivOSOnebotV11.main.eventRegDict.setdefault(botHash, {})
+    OlivOSOnebotV11.main.eventRegDict[botHash][key] = event
+
+def getEventRegDict(botHash:str, key:str):
+    res = OlivOSOnebotV11.main.eventRegDict.get(botHash, {}).get(key, None)
+    return res
+
 class eventRouter(object):
-    def heartbeat(eventObj):
+    def heartbeat(eventObj:rxEvent):
+        botHash = eventObj.plugin_event.bot_info.hash
         eventObj.rvData = {}
         eventObj.rvData['post_type'] = 'meta_event'
         eventObj.rvData['meta_event_type'] = 'heartbeat'
         eventObj.rvData['time'] = backport_int(time.time())
-        eventObj.rvData['self_id'] = backport_int(eventObj.plugin_event.base_info['self_id'])
+        eventObj.rvData['self_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.base_info['self_id']))
         eventObj.rvData['status'] = {}
         eventObj.rvData['status']['enable'] = True
         eventObj.rvData['status']['interval'] = 5000
         eventObj.rvData['interval'] = 5000
 
-    def group_message(eventObj):
+    def group_message(eventObj:rxEvent):
+        botHash = eventObj.plugin_event.bot_info.hash
         eventObj.rvData = {}
         eventObj.rvData['time'] = eventObj.plugin_event.base_info['time']
-        eventObj.rvData['self_id'] = backport_int(eventObj.plugin_event.base_info['self_id'])
+        eventObj.rvData['self_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.base_info['self_id']))
         eventObj.rvData['post_type'] = 'message'
         eventObj.rvData['message_type'] = 'group'
         eventObj.rvData['sub_type'] = 'normal'
         eventObj.rvData['message_id'] = eventObj.plugin_event.data.message_id
-        eventObj.rvData['user_id'] = backport_int(eventObj.plugin_event.data.user_id)
-        eventObj.rvData['group_id'] = backport_int(eventObj.plugin_event.data.group_id)
+        eventObj.rvData['user_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.data.user_id))
+        eventObj.rvData['group_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.data.group_id))
         eventObj.rvData['message'] = paraMapper(eventObj.plugin_event.data.message.data)
         eventObj.rvData['raw_message'] = paraMapper(eventObj.plugin_event.data.raw_message.data)
         eventObj.rvData['anonymous'] = None
         eventObj.rvData['font'] = eventObj.plugin_event.data.font
         eventObj.rvData['sender'] = {}
-        eventObj.rvData['sender']['user_id'] = backport_int(eventObj.plugin_event.data.sender['id'])
+        eventObj.rvData['sender']['user_id'] = eventObj.rvData['user_id']
         eventObj.rvData['sender']['nickname'] = eventObj.plugin_event.data.sender['name']
         eventObj.rvData['sender']['role'] = 'owner'
         if 'role' in eventObj.plugin_event.data.sender:
             eventObj.rvData['sender']['role'] = eventObj.plugin_event.data.sender['role']
         updateHostIdDict(
-            botHash = eventObj.plugin_event.bot_info.hash,
-            hostId = eventObj.plugin_event.data.host_id,
-            groupId = eventObj.plugin_event.data.group_id
+            botHash = botHash,
+            hostId = str(eventObj.plugin_event.data.host_id),
+            groupId = str(eventObj.plugin_event.data.group_id)
+        )
+        updateEventRegDict(
+            botHash = botHash,
+            key = f'group_message/{eventObj.rvData["group_id"]}',
+            event = eventObj.plugin_event
         )
 
-    def private_message(eventObj):
+    def private_message(eventObj:rxEvent):
+        botHash = eventObj.plugin_event.bot_info.hash
         eventObj.rvData = {}
         eventObj.rvData['time'] = eventObj.plugin_event.base_info['time']
-        eventObj.rvData['self_id'] = backport_int(eventObj.plugin_event.base_info['self_id'])
+        eventObj.rvData['self_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.base_info['self_id']))
         eventObj.rvData['post_type'] = 'message'
         eventObj.rvData['message_type'] = 'private'
         eventObj.rvData['sub_type'] = eventObj.plugin_event.data.sub_type
         eventObj.rvData['message_id'] = eventObj.plugin_event.data.message_id
-        eventObj.rvData['user_id'] = backport_int(eventObj.plugin_event.data.user_id)
+        eventObj.rvData['user_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.data.user_id))
         eventObj.rvData['message'] = paraMapper(eventObj.plugin_event.data.message.data)
         eventObj.rvData['raw_message'] = paraMapper(eventObj.plugin_event.data.raw_message.data)
         eventObj.rvData['font'] = eventObj.plugin_event.data.font
         eventObj.rvData['sender'] = {}
-        eventObj.rvData['sender']['user_id'] = backport_int(eventObj.plugin_event.data.sender['id'])
+        eventObj.rvData['sender']['user_id'] = eventObj.rvData['user_id']
         eventObj.rvData['sender']['nickname'] = eventObj.plugin_event.data.sender['name']
+        updateEventRegDict(
+            botHash = botHash,
+            key = f'private_message/{eventObj.rvData["user_id"]}',
+            event = eventObj.plugin_event
+        )
 
 class txEvent(object):
     def __init__(self, ws):
@@ -483,9 +523,16 @@ class actionRouter(object):
             eventObj.active = False
 
     def send_private_msg(eventObj):
+        botHash = eventObj.plugin_event.bot_info.hash
+        tmp_pluginEvent = getEventRegDict(
+            botHash = botHash,
+            key = f'private_message/{eventObj.params["user_id"]}'
+        )
+        if tmp_pluginEvent != None:
+            eventObj.plugin_event = tmp_pluginEvent
         res = eventObj.plugin_event.send(
             send_type = 'private',
-            target_id = str(eventObj.params['user_id']),
+            target_id = getMappingIdDict(botHash, str(eventObj.params['user_id'])),
             message = paraRvMapper(
                 eventObj.params['message']
             )
@@ -493,37 +540,56 @@ class actionRouter(object):
         eventObj.rvData = None
 
     def send_group_msg(eventObj):
+        botHash = eventObj.plugin_event.bot_info.hash
+        tmp_pluginEvent = getEventRegDict(
+            botHash = botHash,
+            key = f'group_message/{eventObj.params["group_id"]}'
+        )
+        if tmp_pluginEvent != None:
+            eventObj.plugin_event = tmp_pluginEvent
         res = eventObj.plugin_event.send(
             send_type = 'group',
-            target_id = str(eventObj.params['group_id']),
+            target_id = getMappingIdDict(botHash, str(eventObj.params['group_id'])),
             message = paraRvMapper(
                 eventObj.params['message']
             ),
-            host_id = getHostIdDict(
-                botHash = eventObj.plugin_event.bot_info.hash,
+            host_id = getMappingIdDict(botHash, getHostIdDict(
+                botHash = botHash,
                 groupId = str(eventObj.params['group_id'])
-            )
+            ))
         )
         eventObj.rvData = None
 
     def send_msg(eventObj):
+        botHash = eventObj.plugin_event.bot_info.hash
         tmp_hostId = None
         tmp_targetId = None
+        tmp_pluginEvent = None
         if eventObj.params['message_type'] == 'group':
             tmp_targetId = str(eventObj.params['group_id'])
             tmp_hostId = getHostIdDict(
-                botHash = eventObj.plugin_event.bot_info.hash,
+                botHash = botHash,
                 groupId = str(eventObj.params['group_id'])
+            )
+            tmp_pluginEvent = getEventRegDict(
+                botHash = botHash,
+                key = f'group_message/{eventObj.params["group_id"]}'
             )
         else:
             tmp_targetId = str(eventObj.params['user_id'])
+            tmp_pluginEvent = getEventRegDict(
+                botHash = botHash,
+                key = f'private_message/{eventObj.params["user_id"]}'
+            )
+        if tmp_pluginEvent != None:
+            eventObj.plugin_event = tmp_pluginEvent
         res = eventObj.plugin_event.send(
             send_type = eventObj.params['message_type'],
-            target_id = tmp_targetId,
+            target_id = getMappingIdDict(botHash, tmp_targetId),
             message = paraRvMapper(
                 eventObj.params['message']
             ),
-            host_id = tmp_hostId
+            host_id = getMappingIdDict(botHash, tmp_hostId)
         )
         eventObj.rvData = None
 

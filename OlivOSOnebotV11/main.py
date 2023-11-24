@@ -20,6 +20,10 @@ confDict = {}
 
 hostIdDict = {}
 
+mappingIdDict = {}
+
+eventRegDict = {}
+
 pluginName = 'OlivOSOnebotV11协议端'
 
 class Event(object):

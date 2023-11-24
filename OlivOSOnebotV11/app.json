@@ -4,8 +4,8 @@
     "namespace" : "OlivOSOnebotV11",
     "info" : "基于OlivOS的OneBot协议端，可以基于OlivOS实现多后端对多账号、多平台的支持。",
     "message_mode" : "olivos_para",
-    "version" : "0.9.3",
-    "svn" : 17,
+    "version" : "0.9.4",
+    "svn" : 18,
     "compatible_svn" : 100,
     "priority" : 50000,
     "support" : [

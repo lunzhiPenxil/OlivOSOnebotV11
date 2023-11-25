@@ -17,6 +17,7 @@ ProcObj = None
 botInfoDict = {}
 
 confDict = {}
+r_confDict = {}
 
 hostIdDict = {}
 
@@ -33,17 +34,17 @@ class Event(object):
     def init_after(plugin_event:OlivOS.API.Event, Proc:OlivOS.pluginAPI.shallow):
         global ProcObj
         global botInfoDict
-        global confDict
+        global confDict, r_confDict
         ProcObj = Proc
         for bot_info_hash in ProcObj.Proc_data['bot_info_dict']:
             botInfoDict[bot_info_hash] = ProcObj.Proc_data['bot_info_dict'][bot_info_hash]
-        confDict = OlivOSOnebotV11.eventRouter.initBotInfo(ProcObj.Proc_data['bot_info_dict'], None)
+        confDict, r_confDict = OlivOSOnebotV11.eventRouter.initBotInfo(ProcObj.Proc_data['bot_info_dict'], None)
         OlivOSOnebotV11.websocketServer.start_websocket(confDict)
-        OlivOSOnebotV11.eventRouter.saveBotInfo(confDict)
+        OlivOSOnebotV11.eventRouter.saveBotInfo(confDict, r_confDict)
 
     def save(plugin_event:OlivOS.API.Event, Proc:OlivOS.pluginAPI.shallow):
-        global confDict
-        OlivOSOnebotV11.eventRouter.saveBotInfo(confDict)
+        global confDict, r_confDict
+        OlivOSOnebotV11.eventRouter.saveBotInfo(confDict, r_confDict)
 
     def private_message(plugin_event:OlivOS.API.Event, Proc:OlivOS.pluginAPI.shallow):
         rxEvent = OlivOSOnebotV11.eventRouter.rxEvent('private_message', plugin_event, Proc)

@@ -23,52 +23,99 @@ def releaseDir(dir_path):
 
 def initBotInfo(bot_info:dict, default_port = 55009):
     tmp_default_port = default_port
-    res = None
     releaseDir('./plugin')
     releaseDir('./plugin/data')
     releaseDir('./plugin/data/OlivOSOnebotV11')
     path = './plugin/data/OlivOSOnebotV11/config.json'
+
+    conf_obj = None
     try:
         conf_obj = None
         with open(path, 'r', encoding = 'utf-8') as conf_f:
             conf_obj = json.loads(conf_f.read())
-        res = {}
-        for route_this in conf_obj['route']:
-            if 'port' in route_this:
-                if 'hash' in route_this:
-                    res[route_this['hash']] = {
-                        'hash': route_this['hash'],
-                        'port': route_this['port']
-                    }
     except:
-        res = None
-    if res == None:
-        res = {}
+        conf_obj = None
+    if type(conf_obj) is not dict:
+        conf_obj = {}
+    conf_obj.setdefault('route', [])
+    conf_obj.setdefault('r-route', [])
+
+    # route
+    res_1 = None
+    try:
+        res_1 = {}
+        for route_this in conf_obj['route']:
+            if 'port' in route_this \
+            and 'hash' in route_this:
+                res_1[route_this['hash']] = {
+                    'hash': route_this['hash'],
+                    'port': route_this['port']
+                }
+    except:
+        res_1 = None
+    if res_1 is None:
+        res_1 = {}
     for bot_info_hash in bot_info:
-        if bot_info_hash not in res:
-            res[bot_info_hash] = {
+        if bot_info_hash not in res_1:
+            res_1[bot_info_hash] = {
                 'hash': bot_info_hash,
                 'port': tmp_default_port
             }
-        OlivOSOnebotV11.main.eventRegDict[bot_info_hash] = {}
     res_new = {}
-    for bot_info_hash in res:
+    for bot_info_hash in res_1:
         if bot_info_hash in bot_info:
-            res_new[bot_info_hash] = res[bot_info_hash]
-    res = res_new
-    return res
+            res_new[bot_info_hash] = res_1[bot_info_hash]
+    res_1 = res_new
 
-def saveBotInfo(data):
+    # r-route
+    res_2 = None
+    try:
+        res_2 = {}
+        for route_this in conf_obj['r-route']:
+            if 'path' in route_this \
+            and 'hash' in route_this:
+                res_2[route_this['hash']] = {
+                    'hash': route_this['hash'],
+                    'path': route_this['path']
+                }
+    except:
+        res_2 = None
+    if res_2 is None:
+        res_2 = {}
+    for bot_info_hash in bot_info:
+        if bot_info_hash not in res_2 \
+        or (bot_info_hash in res_2 \
+        and 'path' in res_2[bot_info_hash] \
+        and type(res_2[bot_info_hash]['path']) is not list):
+            res_2[bot_info_hash] = {
+                'hash': bot_info_hash,
+                'path': []
+            }
+    res_new = {}
+    for bot_info_hash in res_2:
+        if bot_info_hash in bot_info:
+            res_new[bot_info_hash] = res_2[bot_info_hash]
+    res_2 = res_new
+
+    for bot_info_hash in bot_info:
+        OlivOSOnebotV11.main.eventRegDict.setdefault(bot_info_hash, {})
+
+    return res_1, res_2
+
+def saveBotInfo(data, r_data):
     releaseDir('./plugin')
     releaseDir('./plugin/data')
     releaseDir('./plugin/data/OlivOSOnebotV11')
     path = './plugin/data/OlivOSOnebotV11/config.json'
     try:
         res = {
-            'route': []
+            'route': [],
+            'r-route': []
         }
         for route_this in data:
             res['route'].append(data[route_this])
+        for r_route_this in r_data:
+            res['r-route'].append(r_data[r_route_this])
         with open(path, 'w', encoding = 'utf-8') as conf_f:
             conf_f.write(
                 json.dumps(
@@ -145,21 +192,27 @@ def paraMapper(paraList):
 def paraRvMapper(paraList):
     res = None
     res_list = []
-    for para in paraList:
-        tmp_para = para
-        tmp_para_this = None
-        if para['type'] == 'at':
-            tmp_para = {}
-            tmp_para['type'] = 'at'
-            tmp_para['data'] = {}
-            tmp_para['data']['id'] = para['data']['qq']
-        if hasattr(OlivOS.messageAPI.PARA, tmp_para['type']):
-            tmp_para_this = getattr(OlivOS.messageAPI.PARA, tmp_para['type'])(**tmp_para['data'])
-        res_list.append(tmp_para_this)
-    res = OlivOS.messageAPI.Message_templet(
-        'olivos_para',
-        res_list
-    )
+    if type(paraList) is list:
+        for para in paraList:
+            tmp_para = para
+            tmp_para_this = None
+            if para['type'] == 'at':
+                tmp_para = {}
+                tmp_para['type'] = 'at'
+                tmp_para['data'] = {}
+                tmp_para['data']['id'] = para['data']['qq']
+            if hasattr(OlivOS.messageAPI.PARA, tmp_para['type']):
+                tmp_para_this = getattr(OlivOS.messageAPI.PARA, tmp_para['type'])(**tmp_para['data'])
+            res_list.append(tmp_para_this)
+        res = OlivOS.messageAPI.Message_templet(
+            'olivos_para',
+            res_list
+        )
+    else:
+        res = OlivOS.messageAPI.Message_templet(
+            'old_string',
+            str(paraList)
+        )
     return res
 
 def updateHostIdDict(botHash, hostId, groupId):
@@ -268,8 +321,9 @@ class eventRouter(object):
         )
 
 class txEvent(object):
-    def __init__(self, ws):
+    def __init__(self, ws, hostType = 'ws'):
         self.active = True
+        self.hostType = hostType
         self.ws = ws
         self.raw = ws.data
         self.json = None
@@ -283,34 +337,35 @@ class txEvent(object):
         self.doInit()
 
     def doInit(self):
-        try:
-            self.json = json.loads(self.raw)
-            self.funcType = self.json['action']
-            self.echo = self.json['echo']
-            if 'params' in self.json:
-                self.params = self.json['params']
-        except:
-            self.active = False
-        if self.active:
-            self.Proc.log(1, 'websocket receive action [%s]' % self.funcType, [
-                ('OlivOSOnebotV11', 'default')
-            ])
-            botInfoDict_key = None
-            if str(list(self.ws.server.serversocket.getsockname())[1]) in OlivOSOnebotV11.websocketServer.clientDict:
-                if len(OlivOSOnebotV11.websocketServer.clientDict[str(list(self.ws.server.serversocket.getsockname())[1])]) >= 1:
-                    botInfoDict_key = OlivOSOnebotV11.websocketServer.clientDict[str(list(self.ws.server.serversocket.getsockname())[1])][0]['info']['hash']
-            if botInfoDict_key == None:
-                if len(list(OlivOSOnebotV11.main.confDict)) >= 1:
-                    botInfoDict_key = list(OlivOSOnebotV11.main.confDict)[0]
-                    pass
-            if botInfoDict_key != None:
-                self.plugin_event = OlivOS.API.Event(
-                    OlivOS.contentAPI.fake_sdk_event(
-                        bot_info = OlivOSOnebotV11.main.botInfoDict[botInfoDict_key],
-                        fakename = OlivOSOnebotV11.main.pluginName
-                    ),
-                    self.Proc.log
-                )
+        if 'ws' == self.hostType:
+            try:
+                self.json = json.loads(self.raw)
+                self.funcType = self.json['action']
+                self.echo = self.json['echo']
+                if 'params' in self.json:
+                    self.params = self.json['params']
+            except:
+                self.active = False
+            if self.active:
+                self.Proc.log(1, 'websocket receive action [%s]' % self.funcType, [
+                    ('OlivOSOnebotV11', 'default')
+                ])
+                botInfoDict_key = None
+                if str(list(self.ws.server.serversocket.getsockname())[1]) in OlivOSOnebotV11.websocketServer.clientDict:
+                    if len(OlivOSOnebotV11.websocketServer.clientDict[str(list(self.ws.server.serversocket.getsockname())[1])]) >= 1:
+                        botInfoDict_key = OlivOSOnebotV11.websocketServer.clientDict[str(list(self.ws.server.serversocket.getsockname())[1])][0]['info']['hash']
+                if botInfoDict_key == None:
+                    if len(list(OlivOSOnebotV11.main.confDict)) >= 1:
+                        botInfoDict_key = list(OlivOSOnebotV11.main.confDict)[0]
+                        pass
+                if botInfoDict_key != None:
+                    self.plugin_event = OlivOS.API.Event(
+                        OlivOS.contentAPI.fake_sdk_event(
+                            bot_info = OlivOSOnebotV11.main.botInfoDict[botInfoDict_key],
+                            fakename = OlivOSOnebotV11.main.pluginName
+                        ),
+                        self.Proc.log
+                    )
 
     def doRouter(self):
         try:
@@ -325,8 +380,9 @@ class txEvent(object):
                         if self.rvData != None:
                             resData['data'] = self.rvData
                         self.rvMsg = json.dumps(resData)
-            if self.rvMsg != None:
-                self.ws.sendMessage(self.rvMsg)
+            if 'ws' == self.hostType:
+                if self.rvMsg != None:
+                    self.ws.sendMessage(self.rvMsg)
         except Exception as e:
             skip_result = '%s\n%s' % (
                 str(e),

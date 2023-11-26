@@ -163,6 +163,15 @@ class rxEvent(object):
             if self.rvData != None:
                 tmp_rvMsg = self.rvData
                 self.rvMsg = json.dumps(tmp_rvMsg)
+        except Exception as e:
+            skip_result = '%s\n%s' % (
+                str(e),
+                traceback.format_exc()
+            )
+            self.Proc.log(3, skip_result, [
+                ('OlivOSOnebotV11', 'default')
+            ])
+        try:
             if self.rvMsg != None:
                 if self.plugin_event.bot_info.hash in OlivOSOnebotV11.websocketServer.clientMapDict:
                     if OlivOSOnebotV11.websocketServer.clientMapDict[self.plugin_event.bot_info.hash] in OlivOSOnebotV11.websocketServer.clientDict:
@@ -177,16 +186,50 @@ class rxEvent(object):
                 ('OlivOSOnebotV11', 'default')
             ])
 
-def paraMapper(paraList):
+        try:
+            if self.plugin_event.bot_info.hash in OlivOSOnebotV11.main.confDict:
+                if hasattr(eventRouter, self.funcType):
+                    getattr(eventRouter, self.funcType)(self, msgType='msg')
+            if self.rvData != None:
+                tmp_rvMsg = self.rvData
+                self.rvMsg = json.dumps(tmp_rvMsg)
+        except Exception as e:
+            skip_result = '%s\n%s' % (
+                str(e),
+                traceback.format_exc()
+            )
+            self.Proc.log(3, skip_result, [
+                ('OlivOSOnebotV11', 'default')
+            ])
+        try:
+            if self.rvMsg != None:
+                if self.plugin_event.bot_info.hash in OlivOSOnebotV11.websocketLink.clientDict:
+                    for client in OlivOSOnebotV11.websocketLink.clientDict[self.plugin_event.bot_info.hash]:
+                        client.send(self.rvMsg)
+        except Exception as e:
+            skip_result = '%s\n%s' % (
+                str(e),
+                traceback.format_exc()
+            )
+            self.Proc.log(3, skip_result, [
+                ('OlivOSOnebotV11', 'default')
+            ])
+
+def paraMapper(paraList, msgType='para'):
     res = []
-    for para in paraList:
-        tmp_para = para.__dict__
-        if para.type == 'at':
-            tmp_para = {}
-            tmp_para['type'] = 'at'
-            tmp_para['data'] = {}
-            tmp_para['data']['qq'] = para.data['id']
-        res.append(tmp_para)
+    if 'para' == msgType:
+        for para in paraList:
+            tmp_para = para.__dict__
+            if para.type == 'at':
+                tmp_para = {}
+                tmp_para['type'] = 'at'
+                tmp_para['data'] = {}
+                tmp_para['data']['qq'] = para.data['id']
+            res.append(tmp_para)
+    elif 'msg' == msgType:
+        res = ''
+        for para in paraList:
+            res += para.CQ()
     return res
 
 def paraRvMapper(paraList):
@@ -254,7 +297,7 @@ def getEventRegDict(botHash:str, key:str):
     return res
 
 class eventRouter(object):
-    def heartbeat(eventObj:rxEvent):
+    def heartbeat(eventObj:rxEvent, **kwargs):
         botHash = eventObj.plugin_event.bot_info.hash
         eventObj.rvData = {}
         eventObj.rvData['post_type'] = 'meta_event'
@@ -266,7 +309,7 @@ class eventRouter(object):
         eventObj.rvData['status']['interval'] = 5000
         eventObj.rvData['interval'] = 5000
 
-    def group_message(eventObj:rxEvent):
+    def group_message(eventObj:rxEvent, **kwargs):
         botHash = eventObj.plugin_event.bot_info.hash
         eventObj.rvData = {}
         eventObj.rvData['time'] = eventObj.plugin_event.base_info['time']
@@ -274,19 +317,21 @@ class eventRouter(object):
         eventObj.rvData['post_type'] = 'message'
         eventObj.rvData['message_type'] = 'group'
         eventObj.rvData['sub_type'] = 'normal'
-        eventObj.rvData['message_id'] = eventObj.plugin_event.data.message_id
+        eventObj.rvData['message_id'] = -1
         eventObj.rvData['user_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.data.user_id))
         eventObj.rvData['group_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.data.group_id))
-        eventObj.rvData['message'] = paraMapper(eventObj.plugin_event.data.message.data)
-        eventObj.rvData['raw_message'] = paraMapper(eventObj.plugin_event.data.raw_message.data)
+        eventObj.rvData['message'] = paraMapper(eventObj.plugin_event.data.message.data, msgType=kwargs.get('msgType', 'para'))
+        eventObj.rvData['raw_message'] = eventObj.rvData['message']
         eventObj.rvData['anonymous'] = None
-        eventObj.rvData['font'] = eventObj.plugin_event.data.font
+        eventObj.rvData['font'] = 1
         eventObj.rvData['sender'] = {}
         eventObj.rvData['sender']['user_id'] = eventObj.rvData['user_id']
         eventObj.rvData['sender']['nickname'] = eventObj.plugin_event.data.sender['name']
         eventObj.rvData['sender']['role'] = 'owner'
         if 'role' in eventObj.plugin_event.data.sender:
             eventObj.rvData['sender']['role'] = eventObj.plugin_event.data.sender['role']
+        eventObj.rvData['sender']['sex'] = 'unknown'
+        eventObj.rvData['sender']['age'] = 0
         updateHostIdDict(
             botHash = botHash,
             hostId = str(eventObj.plugin_event.data.host_id),
@@ -298,7 +343,7 @@ class eventRouter(object):
             event = eventObj.plugin_event
         )
 
-    def private_message(eventObj:rxEvent):
+    def private_message(eventObj:rxEvent, **kwargs):
         botHash = eventObj.plugin_event.bot_info.hash
         eventObj.rvData = {}
         eventObj.rvData['time'] = eventObj.plugin_event.base_info['time']
@@ -306,11 +351,11 @@ class eventRouter(object):
         eventObj.rvData['post_type'] = 'message'
         eventObj.rvData['message_type'] = 'private'
         eventObj.rvData['sub_type'] = eventObj.plugin_event.data.sub_type
-        eventObj.rvData['message_id'] = eventObj.plugin_event.data.message_id
+        eventObj.rvData['message_id'] = -1
         eventObj.rvData['user_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.data.user_id))
-        eventObj.rvData['message'] = paraMapper(eventObj.plugin_event.data.message.data)
-        eventObj.rvData['raw_message'] = paraMapper(eventObj.plugin_event.data.raw_message.data)
-        eventObj.rvData['font'] = eventObj.plugin_event.data.font
+        eventObj.rvData['message'] = paraMapper(eventObj.plugin_event.data.message.data, msgType=kwargs.get('msgType', 'para'))
+        eventObj.rvData['raw_message'] = eventObj.rvData['message']
+        eventObj.rvData['font'] = 1
         eventObj.rvData['sender'] = {}
         eventObj.rvData['sender']['user_id'] = eventObj.rvData['user_id']
         eventObj.rvData['sender']['nickname'] = eventObj.plugin_event.data.sender['name']
@@ -321,11 +366,14 @@ class eventRouter(object):
         )
 
 class txEvent(object):
-    def __init__(self, ws, hostType = 'ws'):
+    def __init__(self, ws, hostType = 'ws', msg:'str|None' = None, hash = None):
         self.active = True
         self.hostType = hostType
         self.ws = ws
-        self.raw = ws.data
+        self.hash = hash
+        self.raw = msg
+        if 'ws' == self.hostType:
+            self.raw = ws.data
         self.json = None
         self.funcType = None
         self.echo = None
@@ -337,20 +385,21 @@ class txEvent(object):
         self.doInit()
 
     def doInit(self):
+        try:
+            self.json = json.loads(self.raw)
+            self.funcType = self.json['action']
+            self.echo = self.json['echo']
+            if 'params' in self.json:
+                self.params = self.json['params']
+        except:
+            self.active = False
+        if self.active:
+            self.Proc.log(1, 'websocket receive action [%s]' % self.funcType, [
+                ('OlivOSOnebotV11', 'default')
+            ])
+        botInfoDict_key = None
         if 'ws' == self.hostType:
-            try:
-                self.json = json.loads(self.raw)
-                self.funcType = self.json['action']
-                self.echo = self.json['echo']
-                if 'params' in self.json:
-                    self.params = self.json['params']
-            except:
-                self.active = False
             if self.active:
-                self.Proc.log(1, 'websocket receive action [%s]' % self.funcType, [
-                    ('OlivOSOnebotV11', 'default')
-                ])
-                botInfoDict_key = None
                 if str(list(self.ws.server.serversocket.getsockname())[1]) in OlivOSOnebotV11.websocketServer.clientDict:
                     if len(OlivOSOnebotV11.websocketServer.clientDict[str(list(self.ws.server.serversocket.getsockname())[1])]) >= 1:
                         botInfoDict_key = OlivOSOnebotV11.websocketServer.clientDict[str(list(self.ws.server.serversocket.getsockname())[1])][0]['info']['hash']
@@ -358,14 +407,17 @@ class txEvent(object):
                     if len(list(OlivOSOnebotV11.main.confDict)) >= 1:
                         botInfoDict_key = list(OlivOSOnebotV11.main.confDict)[0]
                         pass
-                if botInfoDict_key != None:
-                    self.plugin_event = OlivOS.API.Event(
-                        OlivOS.contentAPI.fake_sdk_event(
-                            bot_info = OlivOSOnebotV11.main.botInfoDict[botInfoDict_key],
-                            fakename = OlivOSOnebotV11.main.pluginName
-                        ),
-                        self.Proc.log
-                    )
+        if 'r-ws' == self.hostType:
+            if self.hash is not None:
+                botInfoDict_key = self.hash
+        if botInfoDict_key != None:
+            self.plugin_event = OlivOS.API.Event(
+                OlivOS.contentAPI.fake_sdk_event(
+                    bot_info = OlivOSOnebotV11.main.botInfoDict[botInfoDict_key],
+                    fakename = OlivOSOnebotV11.main.pluginName
+                ),
+                self.Proc.log
+            )
 
     def doRouter(self):
         try:
@@ -383,6 +435,9 @@ class txEvent(object):
             if 'ws' == self.hostType:
                 if self.rvMsg != None:
                     self.ws.sendMessage(self.rvMsg)
+            if 'r-ws' == self.hostType:
+                if self.rvMsg != None:
+                    self.ws.send(self.rvMsg)
         except Exception as e:
             skip_result = '%s\n%s' % (
                 str(e),

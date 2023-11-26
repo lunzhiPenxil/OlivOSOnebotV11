@@ -11,6 +11,7 @@ import platform
 
 from . import main
 from . import SimpleWebSocketServer
+from . import websocketLink
 from . import websocketServer
 from . import eventRouter
 if(platform.system() == 'Windows'):

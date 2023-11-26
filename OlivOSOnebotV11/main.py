@@ -40,6 +40,7 @@ class Event(object):
             botInfoDict[bot_info_hash] = ProcObj.Proc_data['bot_info_dict'][bot_info_hash]
         confDict, r_confDict = OlivOSOnebotV11.eventRouter.initBotInfo(ProcObj.Proc_data['bot_info_dict'], None)
         OlivOSOnebotV11.websocketServer.start_websocket(confDict)
+        OlivOSOnebotV11.websocketLink.start_websocket(r_confDict)
         OlivOSOnebotV11.eventRouter.saveBotInfo(confDict, r_confDict)
 
     def save(plugin_event:OlivOS.API.Event, Proc:OlivOS.pluginAPI.shallow):

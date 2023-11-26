@@ -279,7 +279,7 @@ def setMappingIdDict(botHash:str, id):
     if targetId is None:
         targetId_hash = hashlib.new('md5')
         targetId_hash.update(str(id).encode(encoding='UTF-8'))
-        targetId = int(int(targetId_hash.hexdigest(), 16) % 10000000000)
+        targetId = int(int(targetId_hash.hexdigest(), 16) % 1000000000)
     OlivOSOnebotV11.main.mappingIdDict.setdefault(botHash, {})
     if str(targetId) != str(id):
         OlivOSOnebotV11.main.mappingIdDict[botHash][str(targetId)] = id
@@ -317,7 +317,7 @@ class eventRouter(object):
         eventObj.rvData['post_type'] = 'message'
         eventObj.rvData['message_type'] = 'group'
         eventObj.rvData['sub_type'] = 'normal'
-        eventObj.rvData['message_id'] = -1
+        eventObj.rvData['message_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.data.message_id))
         eventObj.rvData['user_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.data.user_id))
         eventObj.rvData['group_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.data.group_id))
         eventObj.rvData['message'] = paraMapper(eventObj.plugin_event.data.message.data, msgType=kwargs.get('msgType', 'para'))
@@ -351,7 +351,7 @@ class eventRouter(object):
         eventObj.rvData['post_type'] = 'message'
         eventObj.rvData['message_type'] = 'private'
         eventObj.rvData['sub_type'] = eventObj.plugin_event.data.sub_type
-        eventObj.rvData['message_id'] = -1
+        eventObj.rvData['message_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.data.message_id))
         eventObj.rvData['user_id'] = setMappingIdDict(botHash, backport_int(eventObj.plugin_event.data.user_id))
         eventObj.rvData['message'] = paraMapper(eventObj.plugin_event.data.message.data, msgType=kwargs.get('msgType', 'para'))
         eventObj.rvData['raw_message'] = eventObj.rvData['message']

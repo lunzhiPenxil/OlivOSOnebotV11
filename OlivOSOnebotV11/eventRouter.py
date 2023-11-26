@@ -159,7 +159,7 @@ class rxEvent(object):
         try:
             if self.plugin_event.bot_info.hash in OlivOSOnebotV11.main.confDict:
                 if hasattr(eventRouter, self.funcType):
-                    getattr(eventRouter, self.funcType)(self)
+                    getattr(eventRouter, self.funcType)(self, msgType='msg')
             if self.rvData != None:
                 tmp_rvMsg = self.rvData
                 self.rvMsg = json.dumps(tmp_rvMsg)

@@ -17,8 +17,12 @@
     ],
     "menu_config": [
         {
-            "title": "修改配置",
+            "title": "正向WS配置",
             "event": "OlivOSOnebotV11_001"
+        },
+        {
+            "title": "反向WS配置",
+            "event": "OlivOSOnebotV11_002"
         }
     ]
 }

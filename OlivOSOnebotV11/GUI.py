@@ -41,7 +41,7 @@ class ConfigUI(object):
         self.routeData = {}
 
     def start(self):
-        self.UIObject['root'] = tkinter.Tk()
+        self.UIObject['root'] = tkinter.Toplevel()
         self.UIObject['root'].title('OlivOS OnebotV11 协议端')
         self.UIObject['root'].geometry('518x400')
         self.UIObject['root'].resizable(

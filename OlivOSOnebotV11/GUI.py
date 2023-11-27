@@ -42,7 +42,7 @@ class ConfigUI(object):
 
     def start(self):
         self.UIObject['root'] = tkinter.Toplevel()
-        self.UIObject['root'].title('OlivOS OnebotV11 协议端')
+        self.UIObject['root'].title('OlivOS OnebotV11 协议端 正向WS')
         self.UIObject['root'].geometry('518x400')
         self.UIObject['root'].resizable(
             width = False,
@@ -251,6 +251,244 @@ class ConfigUI(object):
         for hash in self.routeData:
             self.routeData[hash]['port'] = None
         self.tree_save()
+
+
+class ConfigRUI(object):
+    def __init__(self, Model_name, logger_proc = None):
+        self.Model_name = Model_name
+        self.UIObject = {}
+        self.UIData = {}
+        self.UIConfig = {}
+        self.logger_proc = logger_proc
+        self.UIData['flag_open'] = False
+        self.UIData['click_record'] = {}
+        self.UIConfig.update(dictColorContext)
+        self.routeData = {}
+
+    def start(self):
+        self.UIObject['root'] = tkinter.Toplevel()
+        self.UIObject['root'].title('OlivOS OnebotV11 协议端 反向WS')
+        self.UIObject['root'].geometry('518x400')
+        self.UIObject['root'].resizable(
+            width = False,
+            height = False
+        )
+        self.UIObject['root'].configure(bg = self.UIConfig['color_001'])
+
+        self.tree_init()
+
+        self.tree_UI_Button_init(
+            name = 'root_Button_SAVE',
+            text = '保存 并重载',
+            command = lambda : self.tree_save(),
+            x = 15,
+            y = 15,
+            width = 140,
+            height = 34
+        )
+
+        self.tree_UI_Button_init(
+            name = 'root_Button_SAVE_NOW',
+            text = '保存',
+            command = lambda : self.tree_save_now(),
+            x = 15 + (140 + 15) * 1,
+            y = 15,
+            width = 140,
+            height = 34
+        )
+
+        self.tree_edit_UI_Text_init(
+            obj_root = 'root',
+            obj_name = 'root_Text_PATH',
+            str_name = 'root_Text_PATH_StringVar',
+            x = 15 + (170 + 15) * 1,
+            y = 15 + 34 + 15,
+            width = 518 - 18 - (170 + 15) * 1 - 15,
+            height = 321
+        )
+        self.UIObject['root_Text_PATH_yscroll'] = ttk.Scrollbar(
+            self.UIObject['root'],
+            orient = "vertical",
+            command = self.UIObject['root_Text_PATH'].yview
+        )
+        self.UIObject['root_Text_PATH_yscroll'].place(
+            x = 518 - 18 - 15,
+            y = 64,
+            width = 18,
+            height = 321
+        )
+        self.UIObject['root_Text_PATH'].configure(
+            yscrollcommand = self.UIObject['root_Text_PATH_yscroll'].set
+        )
+
+        self.UIObject['root'].iconbitmap('./resource/tmp_favoricon.ico')
+        self.UIObject['root'].mainloop()
+        OlivOSOnebotV11.GUI.flag_open = False
+
+    def tree_init(self):
+        self.UIObject['tree'] = ttk.Treeview(self.UIObject['root'])
+        self.UIObject['tree']['show'] = 'headings'
+        self.UIObject['tree']['columns'] = ('KEY', )
+        self.UIObject['tree'].column('KEY', width = 50)
+        self.UIObject['tree'].heading('KEY', text = '账号')
+        self.UIObject['tree']['selectmode'] = 'browse'
+        #self.UIObject['tree_rightkey_menu'] = tkinter.Menu(self.UIObject['root'], tearoff = False)
+        self.UIObject['tree'].bind('<<TreeviewSelect>>', lambda x : self.treeSelect('tree', x))
+        self.tree_load_init()
+        self.tree_load()
+        self.UIObject['tree'].place(x = 15, y = 64, width = 170 - 18 , height = 321)
+        #self.UIObject['tree'].bind('<Button-3>', lambda x : self.tree_rightKey(x))
+        self.UIObject['tree_yscroll'] = ttk.Scrollbar(
+            self.UIObject['root'],
+            orient = "vertical",
+            command = self.UIObject['tree'].yview
+        )
+        self.UIObject['tree_yscroll'].place(
+            x = 15 + 170 - 18,
+            y = 64,
+            width = 18,
+            height = 321
+        )
+        self.UIObject['tree'].configure(
+            yscrollcommand = self.UIObject['tree_yscroll'].set
+        )
+
+    def tree_load_init(self):
+        for hash in OlivOSOnebotV11.main.r_confDict:
+            if 'hash' in OlivOSOnebotV11.main.r_confDict[hash] \
+            and 'path' in OlivOSOnebotV11.main.r_confDict[hash]:
+                self.routeData[hash] = OlivOSOnebotV11.main.r_confDict[hash].copy()
+
+    def tree_load(self):
+        tmp_tree_item_children = self.UIObject['tree'].get_children()
+        for tmp_tree_item_this in tmp_tree_item_children:
+            self.UIObject['tree'].delete(tmp_tree_item_this)
+        for hash in self.routeData:
+            if hash in OlivOSOnebotV11.main.botInfoDict:
+                key = '%s - %s' % (
+                    str(OlivOSOnebotV11.main.botInfoDict[hash].platform['platform']),
+                    str(OlivOSOnebotV11.main.botInfoDict[hash].id)
+                )
+                try:
+                    self.UIObject['tree'].insert(
+                        '',
+                        0,
+                        text = hash,
+                        values=(
+                            key, 
+                        )
+                    )
+                except:
+                    pass
+
+    def treeSelect(self, name, x):
+        if name == 'tree':
+            force = get_tree_force(self.UIObject['tree'])
+            self.UIObject['root_Text_PATH'].delete('1.0', tkinter.END)
+            if force['text'] in self.routeData:
+                self.UIObject['root_Text_PATH'].insert('1.0', '\n'.join(self.routeData[force['text']]['path']))
+
+    def tree_UI_Button_init(self, name, text, command, x, y, width, height):
+        self.UIObject[name] = tkinter.Button(
+            self.UIObject['root'],
+            text = text,
+            command = command,
+            bd = 0,
+            activebackground = self.UIConfig['color_002'],
+            activeforeground = self.UIConfig['color_001'],
+            bg = self.UIConfig['color_003'],
+            fg = self.UIConfig['color_004'],
+            relief = 'groove'
+        )
+        self.UIObject[name].bind('<Enter>', lambda x : self.buttom_action(name, '<Enter>'))
+        self.UIObject[name].bind('<Leave>', lambda x : self.buttom_action(name, '<Leave>'))
+        self.UIObject[name].bind('<Button-1>', lambda x : self.clickRecord(name, x))
+        self.UIObject[name].place(
+            x = x,
+            y = y,
+            width = width,
+            height = height
+        )
+
+    def buttom_action(self, name, action):
+        if name in self.UIObject:
+            if action == '<Enter>':
+                self.UIObject[name].configure(bg = self.UIConfig['color_006'])
+            if action == '<Leave>':
+                self.UIObject[name].configure(bg = self.UIConfig['color_003'])
+
+    def clickRecord(self, name, event):
+        self.UIData['click_record'][name] = event
+
+    def tree_edit_UI_Entry_init(self, obj_root, obj_name, str_name, x, y, width_t, width, height, action, title = '', mode = 'NONE'):
+        self.UIObject[obj_name + '=Label'] = tkinter.Label(
+            self.UIObject[obj_root],
+            text = title
+        )
+        self.UIObject[obj_name + '=Label'].configure(
+            bg = self.UIConfig['color_001'],
+            fg = self.UIConfig['color_004']
+        )
+        self.UIObject[obj_name + '=Label'].place(
+            x = x - width_t,
+            y = y,
+            width = width_t,
+            height = height
+        )
+        self.UIData[str_name] = tkinter.StringVar()
+        self.UIObject[obj_name] = tkinter.Entry(
+            self.UIObject[obj_root],
+            textvariable = self.UIData[str_name]
+        )
+        self.UIObject[obj_name].configure(
+            bg = self.UIConfig['color_004'],
+            fg = self.UIConfig['color_005'],
+            bd = 0
+        )
+        if mode == 'SAFE':
+            self.UIObject[obj_name].configure(
+                show = '●'
+            )
+        self.UIObject[obj_name].place(
+            x = x,
+            y = y,
+            width = width,
+            height = height
+        )
+
+    def tree_edit_UI_Text_init(self, obj_root, obj_name, str_name, x, y, width, height):
+        self.UIData[str_name] = tkinter.StringVar()
+        self.UIObject[obj_name] = tkinter.Text(
+            self.UIObject[obj_root],
+            wrap = tkinter.WORD
+        )
+        self.UIObject[obj_name].configure(
+            bg = self.UIConfig['color_004'],
+            fg = self.UIConfig['color_005'],
+            bd = 0
+        )
+        self.UIObject[obj_name].place(
+            x = x,
+            y = y,
+            width = width,
+            height = height
+        )
+
+    def tree_save_now(self):
+        force = get_tree_force(self.UIObject['tree'])
+        value = self.UIObject['root_Text_PATH'].get('1.0', tkinter.END)
+        value_list = value.split('\n')
+        value_list_new = []
+        for value_this in value_list:
+            if len(value_this) > 0:
+                value_list_new.append(value_this)
+        if force['text'] in self.routeData:
+            self.routeData[force['text']]['path'] = value_list_new
+
+    def tree_save(self):
+        self.tree_save_now()
+        OlivOSOnebotV11.main.r_confDict = self.routeData
+        OlivOSOnebotV11.main.ProcObj.set_restart()
 
 def get_tree_force(tree_obj):
     return tree_obj.item(tree_obj.focus())

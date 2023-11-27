@@ -67,3 +67,10 @@ class Event(object):
                             Model_name = 'shallow_menu_plugin_manage',
                             logger_proc = Proc.Proc_info.logger_proc.log
                         ).start()
+                if plugin_event.data.event == 'OlivOSOnebotV11_002':
+                    if True or not OlivOSOnebotV11.GUI.flag_open:
+                        OlivOSOnebotV11.GUI.flag_open = True
+                        OlivOSOnebotV11.GUI.ConfigRUI(
+                            Model_name = 'shallow_menu_plugin_manage',
+                            logger_proc = Proc.Proc_info.logger_proc.log
+                        ).start()

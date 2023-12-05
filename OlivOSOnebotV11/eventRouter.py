@@ -269,6 +269,8 @@ def getHostIdDict(botHash, groupId):
     if botHash in OlivOSOnebotV11.main.hostIdDict:
         if str(groupId) in OlivOSOnebotV11.main.hostIdDict[botHash]:
             res = OlivOSOnebotV11.main.hostIdDict[botHash][str(groupId)]
+    if res == 'None':
+        res = None
     return res
 
 def setMappingIdDict(botHash:str, id):
@@ -286,7 +288,10 @@ def setMappingIdDict(botHash:str, id):
     return targetId
 
 def getMappingIdDict(botHash:str, id):
-    return OlivOSOnebotV11.main.mappingIdDict.get(botHash, {}).get(str(id), id)
+    res = OlivOSOnebotV11.main.mappingIdDict.get(botHash, {}).get(str(id), id)
+    if res == 'None':
+        res = None
+    return res
 
 def updateEventRegDict(botHash:str, key:str, event):
     OlivOSOnebotV11.main.eventRegDict.setdefault(botHash, {})

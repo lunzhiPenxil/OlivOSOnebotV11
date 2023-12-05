@@ -449,7 +449,9 @@ class txEvent(object):
 
 class actionRouter(object):
     def get_msg(eventObj):
-        res = eventObj.plugin_event.get_msg()
+        res = eventObj.plugin_event.get_msg(
+            message_id = str(eventObj.params['message_id'])
+        )
         if res == None:
             eventObj.rvData = {}
         elif res['active']:

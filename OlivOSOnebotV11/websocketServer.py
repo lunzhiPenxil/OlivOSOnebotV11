@@ -110,7 +110,7 @@ def init_websocket(server_this):
                     ('OlivOSOnebotV11', 'default')
                 ])
 
-    server = OlivOSOnebotV11.SimpleWebSocketServer.SimpleWebSocketServer('', server_this['port'], serverClass)
+    server = OlivOSOnebotV11.SimpleWebSocketServer.SimpleWebSocketServer('0.0.0.0', server_this['port'], serverClass)
     tmp_bot_hash_info = server_this['hash']
     if server_this['hash'] in OlivOSOnebotV11.main.botInfoDict:
         tmp_bot_hash_info = '%s|%s' % (

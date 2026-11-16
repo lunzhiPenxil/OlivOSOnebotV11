@@ -117,6 +117,8 @@ Onebot V11 for OlivOS
 
 在`http-route`中为账号设置端口即可开启正向HTTP API。每个账号使用独立端口，`port`为`null`时表示关闭该账号的HTTP服务。正向HTTP与正向WS使用两套独立端口，可以同时开启。
 
+也可以通过插件菜单中的“正向HTTP配置”窗口维护端口与`access_token`。
+
 ```json
 {
     "http-route": [
@@ -149,6 +151,8 @@ HTTP状态码含义如下：成功执行动作为`200`；请求体不是合法JS
 ### 反向HTTP
 
 在`r-http-route`中为账号设置上报地址后，插件会以HTTP POST主动推送OneBot事件。一个账号可以配置多个地址；`secret`用于计算`X-Signature`，`timeout`为单次请求超时秒数。响应体可以是JSON对象，用于执行快速操作。
+
+也可以通过“反向HTTP配置”窗口维护上报地址、`secret`与`timeout`。
 
 ```json
 {
@@ -183,7 +187,9 @@ HTTP状态码含义如下：成功执行动作为`200`；请求体不是合法JS
 
 ### 安全提示
 
-正向HTTP与正向WS默认监听`0.0.0.0`。如果将端口暴露到本机之外，请务必设置`access_token`；反向HTTP设置了`secret`时，接收端应校验`X-Signature`，避免伪造事件。`access_token`、`secret`和`timeout`目前需要在配置文件中设置，图形界面用于维护端口和上报地址。
+正向HTTP与正向WS默认监听`0.0.0.0`。如果将端口暴露到本机之外，请务必设置`access_token`；反向HTTP设置了`secret`时，接收端应校验`X-Signature`，避免伪造事件。正向HTTP配置页可维护端口与`access_token`，反向HTTP配置页可维护上报地址、`secret`与`timeout`，也可以直接编辑配置文件。
+
+访问令牌和密钥留空表示不启用对应校验，反向HTTP的`timeout`留空时使用默认5秒。
 
 ### 需要注意
 

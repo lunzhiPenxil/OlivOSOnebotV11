@@ -30,6 +30,8 @@ class ConfigUI(object):
     route_name = 'confDict'
     url_scheme = 'ws'
     remap_mode = 'auto'
+    tree_y = 64
+    tree_height = 321
 
     def __init__(self, Model_name, logger_proc=None):
         self.Model_name = Model_name
@@ -39,6 +41,7 @@ class ConfigUI(object):
         self.logger_proc = logger_proc
         self.UIData['flag_open'] = False
         self.UIData['click_record'] = {}
+        self.UIData['loading_extra_fields'] = False
         self.UIConfig.update(dictColorContext)
         self.routeData = {}
 
@@ -88,6 +91,8 @@ class ConfigUI(object):
         )
         self.UIData['root_Entry_PORT_StringVar'].trace('w', self.entry_port_edit)
 
+        self.init_extra_fields()
+
         self.UIObject['root'].iconbitmap('./resource/tmp_favoricon.ico')
         self.UIObject['root'].mainloop()
         OlivOSOnebotV11.GUI.flag_open = False
@@ -105,7 +110,7 @@ class ConfigUI(object):
         self.UIObject['tree'].bind('<<TreeviewSelect>>', lambda x: self.treeSelect('tree', x))
         self.tree_load_init()
         self.tree_load()
-        self.UIObject['tree'].place(x=15, y=64, width=488 - 18, height=321)
+        self.UIObject['tree'].place(x=15, y=self.tree_y, width=488 - 18, height=self.tree_height)
         # self.UIObject['tree'].bind('<Button-3>', lambda x : self.tree_rightKey(x))
         self.UIObject['tree_yscroll'] = ttk.Scrollbar(
             self.UIObject['root'],
@@ -114,9 +119,9 @@ class ConfigUI(object):
         )
         self.UIObject['tree_yscroll'].place(
             x=15 + 488 - 18,
-            y=64,
+            y=self.tree_y,
             width=18,
-            height=321
+            height=self.tree_height
         )
         self.UIObject['tree'].configure(
             yscrollcommand=self.UIObject['tree_yscroll'].set
@@ -127,6 +132,20 @@ class ConfigUI(object):
         for hash in route_source:
             if 'hash' in route_source[hash] and 'port' in route_source[hash]:
                 self.routeData[route_source[hash]['hash']] = route_source[hash].copy()
+
+    def init_extra_fields(self):
+        pass
+
+    def load_extra_fields(self, bot_hash):
+        pass
+
+    def save_extra_fields(self, bot_hash):
+        pass
+
+    def tree_save_extra_fields(self):
+        force = get_tree_force(self.UIObject['tree'])
+        if force['text'] in self.routeData:
+            self.save_extra_fields(force['text'])
 
     def get_ws_url(self, port):
         if port is None or len(str(port)) <= 0:
@@ -164,6 +183,7 @@ class ConfigUI(object):
                 if port is None:
                     port = ''
                 self.UIData['root_Entry_PORT_StringVar'].set(str(port))
+                self.load_extra_fields(force['text'])
 
     def tree_UI_Button_init(self, name, text, command, x, y, width, height):
         self.UIObject[name] = tkinter.Button(
@@ -254,6 +274,7 @@ class ConfigUI(object):
                 pass
 
     def tree_save(self):
+        self.tree_save_extra_fields()
         setattr(OlivOSOnebotV11.main, self.route_name, self.routeData)
         OlivOSOnebotV11.main.ProcObj.set_restart()
 
@@ -276,11 +297,58 @@ class ConfigHTTPUI(ConfigUI):
     route_name = 'httpConfDict'
     url_scheme = 'http'
     remap_mode = 'free'
+    tree_y = 105
+    tree_height = 280
+
+    def init_extra_fields(self):
+        self.tree_edit_UI_Entry_init(
+            obj_root='root',
+            obj_name='root_Entry_ACCESS_TOKEN',
+            str_name='root_Entry_ACCESS_TOKEN_StringVar',
+            x=65,
+            y=69,
+            width_t=50,
+            width=438,
+            height=26,
+            action=None,
+            title='令牌:',
+            mode='SAFE'
+        )
+        self.UIData['root_Entry_ACCESS_TOKEN_StringVar'].trace('w', self.entry_access_token_edit)
+
+    def entry_access_token_edit(self, *args, **kwargs):
+        if self.UIData.get('loading_extra_fields', False):
+            return
+        self.tree_save_extra_fields()
+
+    def load_extra_fields(self, bot_hash):
+        conf_this = self.routeData[bot_hash]
+        token = conf_this.get('access_token', '')
+        if token is None or len(str(token)) <= 0:
+            token = conf_this.get('token', '')
+        if token is None:
+            token = ''
+        self.UIData['loading_extra_fields'] = True
+        try:
+            self.UIData['root_Entry_ACCESS_TOKEN_StringVar'].set(str(token))
+        finally:
+            self.UIData['loading_extra_fields'] = False
+
+    def save_extra_fields(self, bot_hash):
+        conf_this = self.routeData[bot_hash]
+        token = self.UIData['root_Entry_ACCESS_TOKEN_StringVar'].get()
+        conf_this.pop('token', None)
+        if len(token) > 0:
+            conf_this['access_token'] = token
+        else:
+            conf_this.pop('access_token', None)
 
 
 class ConfigRUI(object):
     window_title = 'OlivOS OnebotV11 协议端 反向WS'
     route_name = 'r_confDict'
+    content_y = 64
+    content_height = 321
 
     def __init__(self, Model_name, logger_proc=None):
         self.Model_name = Model_name
@@ -290,6 +358,7 @@ class ConfigRUI(object):
         self.logger_proc = logger_proc
         self.UIData['flag_open'] = False
         self.UIData['click_record'] = {}
+        self.UIData['loading_extra_fields'] = False
         self.UIConfig.update(dictColorContext)
         self.routeData = {}
 
@@ -330,9 +399,9 @@ class ConfigRUI(object):
             obj_name='root_Text_PATH',
             str_name='root_Text_PATH_StringVar',
             x=15 + (170 + 15) * 1,
-            y=15 + 34 + 15,
+            y=self.content_y,
             width=518 - 18 - (170 + 15) * 1 - 15,
-            height=321
+            height=self.content_height
         )
         self.UIObject['root_Text_PATH_yscroll'] = ttk.Scrollbar(
             self.UIObject['root'],
@@ -341,13 +410,15 @@ class ConfigRUI(object):
         )
         self.UIObject['root_Text_PATH_yscroll'].place(
             x=518 - 18 - 15,
-            y=64,
+            y=self.content_y,
             width=18,
-            height=321
+            height=self.content_height
         )
         self.UIObject['root_Text_PATH'].configure(
             yscrollcommand=self.UIObject['root_Text_PATH_yscroll'].set
         )
+
+        self.init_extra_fields()
 
         self.UIObject['root'].iconbitmap('./resource/tmp_favoricon.ico')
         self.UIObject['root'].mainloop()
@@ -364,7 +435,7 @@ class ConfigRUI(object):
         self.UIObject['tree'].bind('<<TreeviewSelect>>', lambda x: self.treeSelect('tree', x))
         self.tree_load_init()
         self.tree_load()
-        self.UIObject['tree'].place(x=15, y=64, width=170 - 18, height=321)
+        self.UIObject['tree'].place(x=15, y=self.content_y, width=170 - 18, height=self.content_height)
         # self.UIObject['tree'].bind('<Button-3>', lambda x : self.tree_rightKey(x))
         self.UIObject['tree_yscroll'] = ttk.Scrollbar(
             self.UIObject['root'],
@@ -373,9 +444,9 @@ class ConfigRUI(object):
         )
         self.UIObject['tree_yscroll'].place(
             x=15 + 170 - 18,
-            y=64,
+            y=self.content_y,
             width=18,
-            height=321
+            height=self.content_height
         )
         self.UIObject['tree'].configure(
             yscrollcommand=self.UIObject['tree_yscroll'].set
@@ -387,6 +458,20 @@ class ConfigRUI(object):
             if 'hash' in route_source[hash] \
                     and 'path' in route_source[hash]:
                 self.routeData[hash] = route_source[hash].copy()
+
+    def init_extra_fields(self):
+        pass
+
+    def load_extra_fields(self, bot_hash):
+        pass
+
+    def save_extra_fields(self, bot_hash):
+        pass
+
+    def tree_save_extra_fields(self):
+        force = get_tree_force(self.UIObject['tree'])
+        if force['text'] in self.routeData:
+            self.save_extra_fields(force['text'])
 
     def tree_load(self):
         tmp_tree_item_children = self.UIObject['tree'].get_children()
@@ -416,6 +501,7 @@ class ConfigRUI(object):
             self.UIObject['root_Text_PATH'].delete('1.0', tkinter.END)
             if force['text'] in self.routeData:
                 self.UIObject['root_Text_PATH'].insert('1.0', '\n'.join(self.routeData[force['text']]['path']))
+                self.load_extra_fields(force['text'])
 
     def tree_UI_Button_init(self, name, text, command, x, y, width, height):
         self.UIObject[name] = tkinter.Button(
@@ -514,6 +600,7 @@ class ConfigRUI(object):
                 value_list_new.append(value_this)
         if force['text'] in self.routeData:
             self.routeData[force['text']]['path'] = value_list_new
+            self.save_extra_fields(force['text'])
 
     def tree_save(self):
         self.tree_save_now()
@@ -524,6 +611,76 @@ class ConfigRUI(object):
 class ConfigRHTTPUI(ConfigRUI):
     window_title = 'OlivOS OnebotV11 协议端 反向HTTP'
     route_name = 'r_httpConfDict'
+    content_y = 105
+    content_height = 280
+
+    def init_extra_fields(self):
+        self.tree_edit_UI_Entry_init(
+            obj_root='root',
+            obj_name='root_Entry_SECRET',
+            str_name='root_Entry_SECRET_StringVar',
+            x=65,
+            y=69,
+            width_t=50,
+            width=270,
+            height=26,
+            action=None,
+            title='密钥:',
+            mode='SAFE'
+        )
+        self.tree_edit_UI_Entry_init(
+            obj_root='root',
+            obj_name='root_Entry_TIMEOUT',
+            str_name='root_Entry_TIMEOUT_StringVar',
+            x=400,
+            y=69,
+            width_t=50,
+            width=103,
+            height=26,
+            action=None,
+            title='超时:'
+        )
+        self.UIData['root_Entry_SECRET_StringVar'].trace('w', self.entry_http_extra_edit)
+        self.UIData['root_Entry_TIMEOUT_StringVar'].trace('w', self.entry_http_extra_edit)
+
+    def entry_http_extra_edit(self, *args, **kwargs):
+        if self.UIData.get('loading_extra_fields', False):
+            return
+        self.tree_save_extra_fields()
+
+    def load_extra_fields(self, bot_hash):
+        conf_this = self.routeData[bot_hash]
+        secret = conf_this.get('secret', '')
+        timeout = conf_this.get('timeout', '')
+        if secret is None:
+            secret = ''
+        if timeout is None:
+            timeout = ''
+        self.UIData['loading_extra_fields'] = True
+        try:
+            self.UIData['root_Entry_SECRET_StringVar'].set(str(secret))
+            self.UIData['root_Entry_TIMEOUT_StringVar'].set(str(timeout))
+        finally:
+            self.UIData['loading_extra_fields'] = False
+
+    def save_extra_fields(self, bot_hash):
+        conf_this = self.routeData[bot_hash]
+        secret = self.UIData['root_Entry_SECRET_StringVar'].get()
+        if len(secret) > 0:
+            conf_this['secret'] = secret
+        else:
+            conf_this.pop('secret', None)
+        timeout_text = self.UIData['root_Entry_TIMEOUT_StringVar'].get().strip()
+        if len(timeout_text) <= 0:
+            conf_this.pop('timeout', None)
+            return
+        try:
+            timeout = float(timeout_text)
+        except (TypeError, ValueError):
+            return
+        if timeout.is_integer():
+            timeout = int(timeout)
+        conf_this['timeout'] = timeout
 
 
 def get_tree_force(tree_obj):

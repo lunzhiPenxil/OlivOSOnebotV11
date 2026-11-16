@@ -2,3 +2,4 @@ build
 *.egg-info
 __pycache__
 .codex
+.pytest_cache

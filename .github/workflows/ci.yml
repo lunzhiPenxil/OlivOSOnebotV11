@@ -11,6 +11,7 @@ on:
     branches: [ main, dev ]
 jobs:
   build:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -71,3 +72,21 @@ jobs:
       with:
         name: flake8_output
         path: ./flake8_output.log
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: 3.14
+        architecture: x64
+        freethreaded: true
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest websocket-client
+    - name: Run tests
+      run: python -m pytest -q

@@ -27,13 +27,13 @@ eventRegDict = {}
 
 pluginName = 'OlivOSOnebotV11协议端'
 
+
 class Event(object):
-    def init(plugin_event:OlivOS.API.Event, Proc:OlivOS.pluginAPI.shallow):
+    def init(plugin_event: OlivOS.API.Event, Proc: OlivOS.pluginAPI.shallow):
         pass
 
-    def init_after(plugin_event:OlivOS.API.Event, Proc:OlivOS.pluginAPI.shallow):
+    def init_after(plugin_event: OlivOS.API.Event, Proc: OlivOS.pluginAPI.shallow):
         global ProcObj
-        global botInfoDict
         global confDict, r_confDict
         ProcObj = Proc
         for bot_info_hash in ProcObj.Proc_data['bot_info_dict']:
@@ -43,34 +43,33 @@ class Event(object):
         OlivOSOnebotV11.websocketLink.start_websocket(r_confDict)
         OlivOSOnebotV11.eventRouter.saveBotInfo(confDict, r_confDict)
 
-    def save(plugin_event:OlivOS.API.Event, Proc:OlivOS.pluginAPI.shallow):
-        global confDict, r_confDict
+    def save(plugin_event: OlivOS.API.Event, Proc: OlivOS.pluginAPI.shallow):
         OlivOSOnebotV11.eventRouter.saveBotInfo(confDict, r_confDict)
 
-    def private_message(plugin_event:OlivOS.API.Event, Proc:OlivOS.pluginAPI.shallow):
+    def private_message(plugin_event: OlivOS.API.Event, Proc: OlivOS.pluginAPI.shallow):
         rxEvent = OlivOSOnebotV11.eventRouter.rxEvent('private_message', plugin_event, Proc)
         rxEvent.doRouter()
         pass
 
-    def group_message(plugin_event:OlivOS.API.Event, Proc:OlivOS.pluginAPI.shallow):
+    def group_message(plugin_event: OlivOS.API.Event, Proc: OlivOS.pluginAPI.shallow):
         rxEvent = OlivOSOnebotV11.eventRouter.rxEvent('group_message', plugin_event, Proc)
         rxEvent.doRouter()
         pass
 
-    def menu(plugin_event:OlivOS.API.Event, Proc:OlivOS.pluginAPI.shallow):
-        if(platform.system() == 'Windows'):
+    def menu(plugin_event: OlivOS.API.Event, Proc: OlivOS.pluginAPI.shallow):
+        if (platform.system() == 'Windows'):
             if plugin_event.data.namespace == 'OlivOSOnebotV11':
                 if plugin_event.data.event == 'OlivOSOnebotV11_001':
                     if True or not OlivOSOnebotV11.GUI.flag_open:
                         OlivOSOnebotV11.GUI.flag_open = True
                         OlivOSOnebotV11.GUI.ConfigUI(
-                            Model_name = 'shallow_menu_plugin_manage',
-                            logger_proc = Proc.Proc_info.logger_proc.log
+                            Model_name='shallow_menu_plugin_manage',
+                            logger_proc=Proc.Proc_info.logger_proc.log
                         ).start()
                 if plugin_event.data.event == 'OlivOSOnebotV11_002':
                     if True or not OlivOSOnebotV11.GUI.flag_open:
                         OlivOSOnebotV11.GUI.flag_open = True
                         OlivOSOnebotV11.GUI.ConfigRUI(
-                            Model_name = 'shallow_menu_plugin_manage',
-                            logger_proc = Proc.Proc_info.logger_proc.log
+                            Model_name='shallow_menu_plugin_manage',
+                            logger_proc=Proc.Proc_info.logger_proc.log
                         ).start()

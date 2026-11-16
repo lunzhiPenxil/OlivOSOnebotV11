@@ -19,20 +19,23 @@ clientList = []
 clientDict = {}
 clientMapDict = {}
 
+
 def start_websocket(confDict):
     for server_this in confDict:
         if 'hash' in confDict[server_this] \
-        and 'path' in confDict[server_this] \
-        and type(confDict[server_this]['path']) is list:
+                and 'path' in confDict[server_this] \
+                and type(confDict[server_this]['path']) is list:
             for ws_path in confDict[server_this]['path']:
                 threading.Thread(
-                    target = OlivOSOnebotV11.websocketLink.init_websocket,
-                    args = (confDict[server_this], ws_path)
+                    target=OlivOSOnebotV11.websocketLink.init_websocket,
+                    args=(confDict[server_this], ws_path)
                 ).start()
+
 
 def init_websocket(server_conf, ws_path):
     websocketLinkObj = server(server_conf, ws_path)
     websocketLinkObj.run()
+
 
 class server(object):
     def __init__(
@@ -54,9 +57,11 @@ class server(object):
                 break
 
     def run(self):
-        OlivOSOnebotV11.main.ProcObj.log(2, str(self.Proc_config['ws_path']) + ' - running for [' + self.Proc_config['hash'] + ']', [
-            ('OlivOSOnebotV11', 'default')
-        ])
+        OlivOSOnebotV11.main.ProcObj.log(
+            2,
+            str(self.Proc_config['ws_path']) + ' - running for [' + self.Proc_config['hash'] + ']',
+            [('OlivOSOnebotV11', 'default')]
+        )
         while True:
             self.run_websocket_rx_connect_start()
             time.sleep(2)
@@ -64,37 +69,42 @@ class server(object):
     def on_message(self, ws, message):
         actionObj = OlivOSOnebotV11.eventRouter.txEvent(
             ws,
-            hostType = 'r-ws',
-            msg = message,
-            hash = self.Proc_config['hash']
+            hostType='r-ws',
+            msg=message,
+            hash=self.Proc_config['hash']
         )
         actionObj.doRouter()
 
     def on_error(self, ws, error):
-        OlivOSOnebotV11.main.ProcObj.log(0, str(self.Proc_config['ws_path']) + ' - error for [' + self.Proc_config['hash'] + ']', [
-            ('OlivOSOnebotV11', 'default')
-        ])
+        OlivOSOnebotV11.main.ProcObj.log(
+            0,
+            str(self.Proc_config['ws_path']) + ' - error for [' + self.Proc_config['hash'] + ']',
+            [('OlivOSOnebotV11', 'default')]
+        )
 
     def on_close(self, ws, close_status_code, close_msg):
-        OlivOSOnebotV11.main.ProcObj.log(0, str(self.Proc_config['ws_path']) + ' - closed for [' + self.Proc_config['hash'] + ']', [
-            ('OlivOSOnebotV11', 'default')
-        ])
+        OlivOSOnebotV11.main.ProcObj.log(
+            0,
+            str(self.Proc_config['ws_path']) + ' - closed for [' + self.Proc_config['hash'] + ']',
+            [('OlivOSOnebotV11', 'default')]
+        )
 
     def on_open(self, ws):
-        OlivOSOnebotV11.main.ProcObj.log(2, str(self.Proc_config['ws_path']) + ' - connected for [' + self.Proc_config['hash'] + ']', [
-            ('OlivOSOnebotV11', 'default')
-        ])
+        OlivOSOnebotV11.main.ProcObj.log(
+            2,
+            str(self.Proc_config['ws_path']) + ' - connected for [' + self.Proc_config['hash'] + ']',
+            [('OlivOSOnebotV11', 'default')]
+        )
 
     def run_pulse(self):
         pass
         return
 
     def run_websocket_rx_connect_start(self):
-        global clientList, clientDict, clientMapDict
         websocket.enableTrace(False)
         ws = websocket.WebSocketApp(
             self.Proc_config['ws_path'],
-            header = {
+            header={
                 'X-Self-ID': str(self.Proc_config['bot_info'].id)
             },
             on_open=self.on_open,
@@ -109,7 +119,8 @@ class server(object):
         ws.run_forever()
         self.Proc_data['ws_obj'] = None
         self.Proc_data['ws_item'] = None
-        OlivOSOnebotV11.main.ProcObj.log(2, str(self.Proc_config['ws_path']) + ' - lost for [' + self.Proc_config['hash'] + ']', [
-            ('OlivOSOnebotV11', 'default')
-        ])
-
+        OlivOSOnebotV11.main.ProcObj.log(
+            2,
+            str(self.Proc_config['ws_path']) + ' - lost for [' + self.Proc_config['hash'] + ']',
+            [('OlivOSOnebotV11', 'default')]
+        )

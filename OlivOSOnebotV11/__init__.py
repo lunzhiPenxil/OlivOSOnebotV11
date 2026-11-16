@@ -12,6 +12,8 @@ import platform
 from . import main
 from . import websocketLink
 from . import websocketServer
+from . import httpServer
+from . import httpPost
 from . import eventRouter
 if platform.system() == 'Windows':
     from . import GUI

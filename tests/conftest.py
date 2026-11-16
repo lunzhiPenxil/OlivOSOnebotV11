@@ -87,11 +87,15 @@ def _reset_plugin_state():
     main = importlib.import_module('OlivOSOnebotV11.main')
     websocket_link = importlib.import_module('OlivOSOnebotV11.websocketLink')
     websocket_server = importlib.import_module('OlivOSOnebotV11.websocketServer')
+    http_server = importlib.import_module('OlivOSOnebotV11.httpServer')
+    http_post = importlib.import_module('OlivOSOnebotV11.httpPost')
 
     main.ProcObj = None
     main.botInfoDict.clear()
     main.confDict.clear()
     main.r_confDict.clear()
+    main.httpConfDict.clear()
+    main.r_httpConfDict.clear()
     main.hostIdDict.clear()
     main.mappingIdDict.clear()
     main.eventRegDict.clear()
@@ -104,6 +108,10 @@ def _reset_plugin_state():
     websocket_server.clientList.clear()
     websocket_server.clientDict.clear()
     websocket_server.clientMapDict.clear()
+
+    http_server.serverList.clear()
+    http_server.serverDict.clear()
+    http_post.stop_all()
 
 
 @pytest.fixture(autouse=True)

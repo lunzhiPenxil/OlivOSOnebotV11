@@ -26,6 +26,11 @@ dictColorContext = {
 
 
 class ConfigUI(object):
+    window_title = 'OlivOS OnebotV11 协议端 正向WS'
+    route_name = 'confDict'
+    url_scheme = 'ws'
+    remap_mode = 'auto'
+
     def __init__(self, Model_name, logger_proc=None):
         self.Model_name = Model_name
         self.UIObject = {}
@@ -39,7 +44,7 @@ class ConfigUI(object):
 
     def start(self):
         self.UIObject['root'] = tkinter.Toplevel()
-        self.UIObject['root'].title('OlivOS OnebotV11 协议端 正向WS')
+        self.UIObject['root'].title(self.window_title)
         self.UIObject['root'].geometry('518x400')
         self.UIObject['root'].resizable(
             width=False,
@@ -118,15 +123,15 @@ class ConfigUI(object):
         )
 
     def tree_load_init(self):
-        for hash in OlivOSOnebotV11.main.confDict:
-            if 'hash' in OlivOSOnebotV11.main.confDict[hash] and 'port' in OlivOSOnebotV11.main.confDict[hash]:
-                self.routeData[OlivOSOnebotV11.main.confDict[hash]['hash']] = {
-                    'hash': OlivOSOnebotV11.main.confDict[hash]['hash'],
-                    'port': OlivOSOnebotV11.main.confDict[hash]['port']
-                }
+        route_source = getattr(OlivOSOnebotV11.main, self.route_name)
+        for hash in route_source:
+            if 'hash' in route_source[hash] and 'port' in route_source[hash]:
+                self.routeData[route_source[hash]['hash']] = route_source[hash].copy()
 
     def get_ws_url(self, port):
-        return 'ws://localhost:%s' % str(port)
+        if port is None or len(str(port)) <= 0:
+            return ''
+        return '%s://localhost:%s' % (self.url_scheme, str(port))
 
     def tree_load(self):
         tmp_tree_item_children = self.UIObject['tree'].get_children()
@@ -145,7 +150,7 @@ class ConfigUI(object):
                         text=hash,
                         values=(
                             key,
-                            self.get_ws_url(str(self.routeData[hash]['port']))
+                            self.get_ws_url(self.routeData[hash]['port'])
                         )
                     )
                 except Exception:
@@ -155,7 +160,10 @@ class ConfigUI(object):
         if name == 'tree':
             force = get_tree_force(self.UIObject['tree'])
             if force['text'] in self.routeData:
-                self.UIData['root_Entry_PORT_StringVar'].set(str(self.routeData[force['text']]['port']))
+                port = self.routeData[force['text']]['port']
+                if port is None:
+                    port = ''
+                self.UIData['root_Entry_PORT_StringVar'].set(str(port))
 
     def tree_UI_Button_init(self, name, text, command, x, y, width, height):
         self.UIObject[name] = tkinter.Button(
@@ -234,7 +242,11 @@ class ConfigUI(object):
         selection = self.UIObject['tree'].selection()
         if force['text'] in self.routeData:
             try:
-                port = self.UIData['root_Entry_PORT_StringVar'].get()
+                port = self.UIData['root_Entry_PORT_StringVar'].get().strip()
+                if len(port) <= 0:
+                    self.routeData[force['text']]['port'] = None
+                    self.UIObject['tree'].set(selection, column='PORT', value='')
+                    return
                 self.routeData[force['text']]['port'] = int(port)
                 self.UIObject['tree'].set(selection, column='PORT', value=self.get_ws_url(port))
                 # self.tree_load()
@@ -242,16 +254,34 @@ class ConfigUI(object):
                 pass
 
     def tree_save(self):
-        OlivOSOnebotV11.main.confDict = self.routeData
+        setattr(OlivOSOnebotV11.main, self.route_name, self.routeData)
         OlivOSOnebotV11.main.ProcObj.set_restart()
 
     def tree_remapping(self):
+        used_port = set()
         for hash in self.routeData:
-            self.routeData[hash]['port'] = None
+            if self.remap_mode == 'free':
+                port = OlivOSOnebotV11.httpServer.get_free_port()
+                while port in used_port:
+                    port = OlivOSOnebotV11.httpServer.get_free_port()
+                used_port.add(port)
+                self.routeData[hash]['port'] = port
+            else:
+                self.routeData[hash]['port'] = None
         self.tree_save()
 
 
+class ConfigHTTPUI(ConfigUI):
+    window_title = 'OlivOS OnebotV11 协议端 正向HTTP'
+    route_name = 'httpConfDict'
+    url_scheme = 'http'
+    remap_mode = 'free'
+
+
 class ConfigRUI(object):
+    window_title = 'OlivOS OnebotV11 协议端 反向WS'
+    route_name = 'r_confDict'
+
     def __init__(self, Model_name, logger_proc=None):
         self.Model_name = Model_name
         self.UIObject = {}
@@ -265,7 +295,7 @@ class ConfigRUI(object):
 
     def start(self):
         self.UIObject['root'] = tkinter.Toplevel()
-        self.UIObject['root'].title('OlivOS OnebotV11 协议端 反向WS')
+        self.UIObject['root'].title(self.window_title)
         self.UIObject['root'].geometry('518x400')
         self.UIObject['root'].resizable(
             width=False,
@@ -352,10 +382,11 @@ class ConfigRUI(object):
         )
 
     def tree_load_init(self):
-        for hash in OlivOSOnebotV11.main.r_confDict:
-            if 'hash' in OlivOSOnebotV11.main.r_confDict[hash] \
-                    and 'path' in OlivOSOnebotV11.main.r_confDict[hash]:
-                self.routeData[hash] = OlivOSOnebotV11.main.r_confDict[hash].copy()
+        route_source = getattr(OlivOSOnebotV11.main, self.route_name)
+        for hash in route_source:
+            if 'hash' in route_source[hash] \
+                    and 'path' in route_source[hash]:
+                self.routeData[hash] = route_source[hash].copy()
 
     def tree_load(self):
         tmp_tree_item_children = self.UIObject['tree'].get_children()
@@ -486,8 +517,13 @@ class ConfigRUI(object):
 
     def tree_save(self):
         self.tree_save_now()
-        OlivOSOnebotV11.main.r_confDict = self.routeData
+        setattr(OlivOSOnebotV11.main, self.route_name, self.routeData)
         OlivOSOnebotV11.main.ProcObj.set_restart()
+
+
+class ConfigRHTTPUI(ConfigRUI):
+    window_title = 'OlivOS OnebotV11 协议端 反向HTTP'
+    route_name = 'r_httpConfDict'
 
 
 def get_tree_force(tree_obj):

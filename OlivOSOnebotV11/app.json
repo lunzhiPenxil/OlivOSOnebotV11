@@ -23,6 +23,14 @@
         {
             "title": "反向WS配置",
             "event": "OlivOSOnebotV11_002"
+        },
+        {
+            "title": "正向HTTP配置",
+            "event": "OlivOSOnebotV11_003"
+        },
+        {
+            "title": "反向HTTP配置",
+            "event": "OlivOSOnebotV11_004"
         }
     ]
 }

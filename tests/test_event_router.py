@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from OlivOSOnebotV11 import eventRouter, main, websocketLink, websocketServer
+from OlivOSOnebotV11 import eventRouter, httpPost, main, websocketLink, websocketServer
 
 
 class _Para(object):
@@ -60,6 +60,20 @@ def test_init_bot_info_reads_config_and_fills_defaults(tmp_path, monkeypatch):
                 {'hash': 'bot-a', 'path': ['ws://127.0.0.1:8080/onebot/v11/ws']},
                 {'hash': 'bot-b', 'path': 'invalid-path'},
             ],
+            'http-route': [
+                {'hash': 'bot-a', 'port': 5700, 'access_token': 'token-a'},
+                {'hash': 'removed-bot', 'port': 5701},
+                {'hash': 'invalid-http-route'},
+            ],
+            'r-http-route': [
+                {
+                    'hash': 'bot-a',
+                    'path': ['http://127.0.0.1:8080/onebot/v11/http'],
+                    'secret': 'secret-a',
+                    'timeout': 2,
+                },
+                {'hash': 'bot-b', 'path': 'invalid-path'},
+            ],
         }),
         encoding='utf-8'
     )
@@ -77,6 +91,20 @@ def test_init_bot_info_reads_config_and_fills_defaults(tmp_path, monkeypatch):
         'bot-a': {'hash': 'bot-a', 'path': ['ws://127.0.0.1:8080/onebot/v11/ws']},
         'bot-b': {'hash': 'bot-b', 'path': []},
     }
+    http_route, reverse_http_route = eventRouter.initHttpBotInfo({'bot-a': object(), 'bot-b': object()})
+    assert http_route == {
+        'bot-a': {'hash': 'bot-a', 'port': 5700, 'access_token': 'token-a'},
+        'bot-b': {'hash': 'bot-b', 'port': None},
+    }
+    assert reverse_http_route == {
+        'bot-a': {
+            'hash': 'bot-a',
+            'path': ['http://127.0.0.1:8080/onebot/v11/http'],
+            'secret': 'secret-a',
+            'timeout': 2,
+        },
+        'bot-b': {'hash': 'bot-b', 'path': []},
+    }
     assert set(main.eventRegDict) == {'bot-a', 'bot-b'}
 
 
@@ -85,7 +113,12 @@ def test_init_bot_info_falls_back_on_invalid_section_types(tmp_path, monkeypatch
     config_path = Path('plugin/data/OlivOSOnebotV11/config.json')
     config_path.parent.mkdir(parents=True)
     config_path.write_text(
-        json.dumps({'route': [None], 'r-route': [None]}),
+        json.dumps({
+            'route': [None],
+            'r-route': [None],
+            'http-route': [None],
+            'r-http-route': [None],
+        }),
         encoding='utf-8'
     )
 
@@ -93,23 +126,67 @@ def test_init_bot_info_falls_back_on_invalid_section_types(tmp_path, monkeypatch
 
     assert route == {'bot-a': {'hash': 'bot-a', 'port': 55011}}
     assert reverse_route == {'bot-a': {'hash': 'bot-a', 'path': []}}
+    http_route, reverse_http_route = eventRouter.initHttpBotInfo({'bot-a': object()})
+    assert http_route == {'bot-a': {'hash': 'bot-a', 'port': None}}
+    assert reverse_http_route == {'bot-a': {'hash': 'bot-a', 'path': []}}
 
 
 def test_save_bot_info_round_trips(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     route = {'bot-a': {'hash': 'bot-a', 'port': 43000}}
     reverse_route = {'bot-a': {'hash': 'bot-a', 'path': ['ws://127.0.0.1:8080']}}
+    http_route = {'bot-a': {'hash': 'bot-a', 'port': 5700, 'access_token': 'token-a'}}
+    reverse_http_route = {
+        'bot-a': {
+            'hash': 'bot-a',
+            'path': ['http://127.0.0.1:8080/onebot/v11/http'],
+            'secret': 'secret-a',
+            'timeout': 2,
+        }
+    }
 
-    eventRouter.saveBotInfo(route, reverse_route)
+    eventRouter.saveBotInfo(route, reverse_route, http_route, reverse_http_route)
     saved = json.loads(Path('plugin/data/OlivOSOnebotV11/config.json').read_text(encoding='utf-8'))
 
     assert saved == {
         'route': [{'hash': 'bot-a', 'port': 43000}],
         'r-route': [{'hash': 'bot-a', 'path': ['ws://127.0.0.1:8080']}],
+        'http-route': [{'hash': 'bot-a', 'port': 5700, 'access_token': 'token-a'}],
+        'r-http-route': [{
+            'hash': 'bot-a',
+            'path': ['http://127.0.0.1:8080/onebot/v11/http'],
+            'secret': 'secret-a',
+            'timeout': 2,
+        }],
     }
     loaded_route, loaded_reverse_route = eventRouter.initBotInfo({'bot-a': object()})
+    loaded_http_route, loaded_reverse_http_route = eventRouter.initHttpBotInfo({'bot-a': object()})
     assert loaded_route == route
     assert loaded_reverse_route == reverse_route
+    assert loaded_http_route == http_route
+    assert loaded_reverse_http_route == reverse_http_route
+
+
+def test_save_bot_info_preserves_http_sections_for_legacy_callers(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    config_path = Path('plugin/data/OlivOSOnebotV11/config.json')
+    config_path.parent.mkdir(parents=True)
+    config_path.write_text(
+        json.dumps({
+            'http-route': [{'hash': 'bot-a', 'port': 5700}],
+            'r-http-route': [{'hash': 'bot-a', 'path': ['http://127.0.0.1:8080/']}],
+        }),
+        encoding='utf-8'
+    )
+
+    eventRouter.saveBotInfo(
+        {'bot-a': {'hash': 'bot-a', 'port': 43000}},
+        {'bot-a': {'hash': 'bot-a', 'path': []}}
+    )
+
+    saved = json.loads(config_path.read_text(encoding='utf-8'))
+    assert saved['http-route'] == [{'hash': 'bot-a', 'port': 5700}]
+    assert saved['r-http-route'] == [{'hash': 'bot-a', 'path': ['http://127.0.0.1:8080/']}]
 
 
 def test_backport_int_preserves_values_that_cannot_be_converted():
@@ -169,12 +246,19 @@ def test_para_reverse_mapper_keeps_existing_message_formats():
     assert fallback.data == 'hello'
 
 
-def test_rx_event_routes_heartbeat_to_server_and_reverse_link():
+def test_rx_event_routes_heartbeat_to_server_and_reverse_link(monkeypatch):
     main.confDict['bot-a'] = {'hash': 'bot-a', 'port': 43000}
+    main.r_httpConfDict['bot-a'] = {'hash': 'bot-a', 'path': ['http://127.0.0.1:8080/']}
     websocketServer.clientMapDict['bot-a'] = '43000'
     websocketServer.clientDict['43000'] = [{'obj': _MessageSink()}]
     link_sink = _MessageSink()
     websocketLink.clientDict['bot-a'] = [link_sink]
+    http_messages = []
+    monkeypatch.setattr(
+        httpPost,
+        'send',
+        lambda bot_hash, message, plugin_event: http_messages.append((bot_hash, message, plugin_event))
+    )
 
     rx_event = eventRouter.rxEvent('heartbeat', _PluginEvent(), _Proc())
     rx_event.doRouter()
@@ -186,6 +270,9 @@ def test_rx_event_routes_heartbeat_to_server_and_reverse_link():
     assert message['post_type'] == 'meta_event'
     assert message['meta_event_type'] == 'heartbeat'
     assert message['self_id'] == 42
+    assert len(http_messages) == 1
+    assert http_messages[0][0] == 'bot-a'
+    assert json.loads(http_messages[0][1])['post_type'] == 'meta_event'
 
 
 def test_unknown_bot_does_not_emit_heartbeat():

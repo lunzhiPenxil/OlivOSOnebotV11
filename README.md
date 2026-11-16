@@ -56,13 +56,38 @@ Onebot V11 for OlivOS
         },
         {
             "hash": "48781dc6c1de335c504572b51420ea52",
-            "port": [
+            "path": [
                 "ws://127.0.0.1:8080/onebot/v11/ws"
             ]
         },
         {
             "hash": "dea0b0e07ef3728456d4520eedc62fe7",
-            "port": []
+            "path": []
+        }
+    ],
+    "http-route": [
+        {
+            "hash": "3cfede0d58a99a0fe71846310e9cac47",
+            "port": 5700,
+            "access_token": "token-a"
+        },
+        {
+            "hash": "48781dc6c1de335c504572b51420ea52",
+            "port": null
+        }
+    ],
+    "r-http-route": [
+        {
+            "hash": "3cfede0d58a99a0fe71846310e9cac47",
+            "path": [
+                "http://127.0.0.1:8080/onebot/v11/http"
+            ],
+            "secret": "secret-a",
+            "timeout": 5
+        },
+        {
+            "hash": "48781dc6c1de335c504572b51420ea52",
+            "path": []
         }
     ]
 }
@@ -87,6 +112,78 @@ Onebot V11 for OlivOS
 ```powershell
 [2022-03-23 23:07:12] - [INFO] - [OlivOSOnebotV11] - ws://127.0.0.1:8080/onebot/v11/ws - connected for [48781dc6c1de335c504572b51420ea52]
 ```
+
+### 正向HTTP
+
+在`http-route`中为账号设置端口即可开启正向HTTP API。每个账号使用独立端口，`port`为`null`时表示关闭该账号的HTTP服务。正向HTTP与正向WS使用两套独立端口，可以同时开启。
+
+```json
+{
+    "http-route": [
+        {
+            "hash": "3cfede0d58a99a0fe71846310e9cac47",
+            "port": 5700,
+            "access_token": "token-a"
+        }
+    ]
+}
+```
+
+OneBot V11 动作位于URL路径中，支持`GET`和`POST`。`GET`参数放在查询字符串中；`POST`支持`application/json`与`application/x-www-form-urlencoded`。例如：
+
+```text
+GET  http://127.0.0.1:5700/get_login_info
+POST http://127.0.0.1:5700/send_private_msg
+     {"user_id": 123456789, "message": "hello"}
+```
+
+配置`access_token`后，可以使用请求头或查询参数鉴权：
+
+```text
+Authorization: Bearer token-a
+http://127.0.0.1:5700/get_login_info?access_token=token-a
+```
+
+HTTP状态码含义如下：成功执行动作为`200`；请求体不是合法JSON或表单为`400`；缺少令牌为`401`；令牌错误为`403`；动作不存在为`404`；`POST`的`Content-Type`不受支持为`406`；内部异常为`500`。失败响应仍返回OneBot风格的`status`、`retcode`和`data`字段。
+
+### 反向HTTP
+
+在`r-http-route`中为账号设置上报地址后，插件会以HTTP POST主动推送OneBot事件。一个账号可以配置多个地址；`secret`用于计算`X-Signature`，`timeout`为单次请求超时秒数。响应体可以是JSON对象，用于执行快速操作。
+
+```json
+{
+    "r-http-route": [
+        {
+            "hash": "3cfede0d58a99a0fe71846310e9cac47",
+            "path": [
+                "http://127.0.0.1:8080/onebot/v11/http"
+            ],
+            "secret": "secret-a",
+            "timeout": 5
+        }
+    ]
+}
+```
+
+上报请求使用`Content-Type: application/json; charset=utf-8`和`X-Self-ID`头部；配置`secret`时还会发送`X-Signature: sha1=<HMAC-SHA1>`。快速操作响应示例：
+
+```json
+{
+    "reply": "收到",
+    "auto_escape": false,
+    "at_sender": true,
+    "delete": false,
+    "kick": false,
+    "ban": false,
+    "ban_duration": 60
+}
+```
+
+其中`reply`支持CQ字符串或消息段数组，`auto_escape`表示将回复作为纯文本发送，`at_sender`表示在回复前@发送者；`delete`、`kick`、`ban`仅对消息事件有效，`ban_duration`单位为秒。正向WS、反向WS、正向HTTP和反向HTTP互不排斥，可以按账号同时启用。
+
+### 安全提示
+
+正向HTTP与正向WS默认监听`0.0.0.0`。如果将端口暴露到本机之外，请务必设置`access_token`；反向HTTP设置了`secret`时，接收端应校验`X-Signature`，避免伪造事件。`access_token`、`secret`和`timeout`目前需要在配置文件中设置，图形界面用于维护端口和上报地址。
 
 ### 需要注意
 

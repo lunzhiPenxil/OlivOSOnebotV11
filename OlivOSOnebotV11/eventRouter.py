@@ -105,12 +105,101 @@ def initBotInfo(bot_info: dict, default_port=55009):
     return res_1, res_2
 
 
-def saveBotInfo(data, r_data):
+def initHttpBotInfo(bot_info):
+    releaseDir('./plugin')
+    releaseDir('./plugin/data')
+    releaseDir('./plugin/data/OlivOSOnebotV11')
+    path = './plugin/data/OlivOSOnebotV11/config.json'
+
+    conf_obj = None
+    try:
+        with open(path, 'r', encoding='utf-8') as conf_f:
+            conf_obj = json.loads(conf_f.read())
+    except Exception:
+        conf_obj = None
+    if type(conf_obj) is not dict:
+        conf_obj = {}
+    conf_obj.setdefault('http-route', [])
+    conf_obj.setdefault('r-http-route', [])
+
+    res_1 = {}
+    try:
+        if type(conf_obj['http-route']) is list:
+            for route_this in conf_obj['http-route']:
+                if type(route_this) is not dict \
+                        or 'hash' not in route_this:
+                    continue
+                res_this = {
+                    'hash': route_this['hash'],
+                    'port': route_this.get('port', None)
+                }
+                if 'access_token' in route_this:
+                    res_this['access_token'] = route_this['access_token']
+                if 'token' in route_this:
+                    res_this['token'] = route_this['token']
+                res_1[route_this['hash']] = res_this
+    except Exception:
+        res_1 = {}
+    for bot_info_hash in bot_info:
+        if bot_info_hash not in res_1:
+            res_1[bot_info_hash] = {
+                'hash': bot_info_hash,
+                'port': None
+            }
+    res_new = {}
+    for bot_info_hash in res_1:
+        if bot_info_hash in bot_info:
+            res_new[bot_info_hash] = res_1[bot_info_hash]
+    res_1 = res_new
+
+    res_2 = {}
+    try:
+        if type(conf_obj['r-http-route']) is list:
+            for route_this in conf_obj['r-http-route']:
+                if type(route_this) is not dict \
+                        or 'hash' not in route_this:
+                    continue
+                path_this = route_this.get('path', [])
+                if type(path_this) is not list:
+                    path_this = []
+                res_this = {
+                    'hash': route_this['hash'],
+                    'path': path_this
+                }
+                if 'secret' in route_this:
+                    res_this['secret'] = route_this['secret']
+                if 'timeout' in route_this:
+                    res_this['timeout'] = route_this['timeout']
+                res_2[route_this['hash']] = res_this
+    except Exception:
+        res_2 = {}
+    for bot_info_hash in bot_info:
+        if bot_info_hash not in res_2:
+            res_2[bot_info_hash] = {
+                'hash': bot_info_hash,
+                'path': []
+            }
+    res_new = {}
+    for bot_info_hash in res_2:
+        if bot_info_hash in bot_info:
+            res_new[bot_info_hash] = res_2[bot_info_hash]
+    res_2 = res_new
+
+    return res_1, res_2
+
+
+def saveBotInfo(data, r_data, http_data=None, r_http_data=None):
     releaseDir('./plugin')
     releaseDir('./plugin/data')
     releaseDir('./plugin/data/OlivOSOnebotV11')
     path = './plugin/data/OlivOSOnebotV11/config.json'
     try:
+        conf_old = None
+        try:
+            with open(path, 'r', encoding='utf-8') as conf_f:
+                conf_old = json.loads(conf_f.read())
+        except Exception:
+            conf_old = None
         res = {
             'route': [],
             'r-route': []
@@ -119,6 +208,30 @@ def saveBotInfo(data, r_data):
             res['route'].append(data[route_this])
         for r_route_this in r_data:
             res['r-route'].append(r_data[r_route_this])
+        if http_data is None:
+            if type(conf_old) is dict and type(conf_old.get('http-route')) is list:
+                res['http-route'] = conf_old['http-route']
+        else:
+            res['http-route'] = []
+            for route_this in http_data:
+                conf_this = http_data[route_this]
+                res_this = {}
+                for key in ('hash', 'port', 'access_token', 'token'):
+                    if key in conf_this:
+                        res_this[key] = conf_this[key]
+                res['http-route'].append(res_this)
+        if r_http_data is None:
+            if type(conf_old) is dict and type(conf_old.get('r-http-route')) is list:
+                res['r-http-route'] = conf_old['r-http-route']
+        else:
+            res['r-http-route'] = []
+            for r_route_this in r_http_data:
+                conf_this = r_http_data[r_route_this]
+                res_this = {}
+                for key in ('hash', 'path', 'secret', 'timeout'):
+                    if key in conf_this:
+                        res_this[key] = conf_this[key]
+                res['r-http-route'].append(res_this)
         with open(path, 'w', encoding='utf-8') as conf_f:
             conf_f.write(
                 json.dumps(
@@ -168,6 +281,19 @@ class rxEvent(object):
             if self.rvData is not None:
                 tmp_rvMsg = self.rvData
                 self.rvMsg = json.dumps(tmp_rvMsg)
+        except Exception as e:
+            skip_result = '%s\n%s' % (
+                str(e),
+                traceback.format_exc()
+            )
+            self.Proc.log(3, skip_result, [
+                ('OlivOSOnebotV11', 'default')
+            ])
+        try:
+            if self.rvMsg is not None:
+                bot_hash = self.plugin_event.bot_info.hash
+                if bot_hash in OlivOSOnebotV11.main.r_httpConfDict:
+                    OlivOSOnebotV11.httpPost.send(bot_hash, self.rvMsg, self.plugin_event)
         except Exception as e:
             skip_result = '%s\n%s' % (
                 str(e),
@@ -396,7 +522,7 @@ class txEvent(object):
         self.ws = ws
         self.hash = hash
         self.raw = msg
-        if 'ws' == self.hostType:
+        if self.hostType in ('ws', 'http'):
             self.raw = ws.data
         self.json = None
         self.funcType = None
@@ -412,9 +538,13 @@ class txEvent(object):
         try:
             self.json = json.loads(self.raw)
             self.funcType = self.json['action']
-            self.echo = self.json['echo']
-            if 'params' in self.json:
-                self.params = self.json['params']
+            self.echo = self.json.get('echo')
+            if not isinstance(self.funcType, str) or len(self.funcType) <= 0 \
+                    or self.funcType.startswith('_'):
+                raise ValueError('invalid action')
+            self.params = self.json.get('params', {})
+            if not isinstance(self.params, dict):
+                raise ValueError('invalid params')
         except (TypeError, ValueError, KeyError):
             self.active = False
         if self.active:
@@ -422,7 +552,7 @@ class txEvent(object):
                 ('OlivOSOnebotV11', 'default')
             ])
         botInfoDict_key = None
-        if 'ws' == self.hostType:
+        if self.hostType in ('ws', 'http'):
             if self.active:
                 server_port = getattr(self.ws, 'server_port', None)
                 if server_port is None:
@@ -431,7 +561,7 @@ class txEvent(object):
                     except Exception:
                         server_port = None
                 bot_hash_this = getattr(self.ws, 'bot_hash', None)
-                if bot_hash_this in OlivOSOnebotV11.main.confDict:
+                if bot_hash_this in OlivOSOnebotV11.main.botInfoDict:
                     botInfoDict_key = bot_hash_this
                 elif server_port is not None:
                     server_port = str(server_port)
@@ -462,13 +592,14 @@ class txEvent(object):
                     getattr(actionRouter, self.funcType)(self)
                     if self.active:
                         resData = {}
-                        resData['echo'] = self.echo
+                        if self.echo is not None:
+                            resData['echo'] = self.echo
                         resData['status'] = 'ok'
                         resData['retcode'] = 0
                         if self.rvData is not None:
                             resData['data'] = self.rvData
                         self.rvMsg = json.dumps(resData)
-            if 'ws' == self.hostType:
+            if self.hostType in ('ws', 'http'):
                 if self.rvMsg is not None:
                     self.ws.sendMessage(self.rvMsg)
             if 'r-ws' == self.hostType:

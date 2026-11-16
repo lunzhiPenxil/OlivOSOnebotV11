@@ -424,11 +424,21 @@ class txEvent(object):
         botInfoDict_key = None
         if 'ws' == self.hostType:
             if self.active:
-                server_port = str(list(self.ws.server.serversocket.getsockname())[1])
-                client_dict = OlivOSOnebotV11.websocketServer.clientDict
-                if server_port in client_dict:
-                    if len(client_dict[server_port]) >= 1:
-                        botInfoDict_key = client_dict[server_port][0]['info']['hash']
+                server_port = getattr(self.ws, 'server_port', None)
+                if server_port is None:
+                    try:
+                        server_port = list(self.ws.server.serversocket.getsockname())[1]
+                    except Exception:
+                        server_port = None
+                bot_hash_this = getattr(self.ws, 'bot_hash', None)
+                if bot_hash_this in OlivOSOnebotV11.main.confDict:
+                    botInfoDict_key = bot_hash_this
+                elif server_port is not None:
+                    server_port = str(server_port)
+                    client_dict = OlivOSOnebotV11.websocketServer.clientDict
+                    if server_port in client_dict:
+                        if len(client_dict[server_port]) >= 1:
+                            botInfoDict_key = client_dict[server_port][0]['info']['hash']
                 if botInfoDict_key is None:
                     if len(list(OlivOSOnebotV11.main.confDict)) >= 1:
                         botInfoDict_key = list(OlivOSOnebotV11.main.confDict)[0]

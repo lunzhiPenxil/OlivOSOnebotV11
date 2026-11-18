@@ -44,20 +44,23 @@ class _Event(object):
         self.rvData = object()
 
 
+def _assert_old_string_message(message, text='hello'):
+    assert message.mode_rx == 'old_string'
+    assert message.get('old_string') == text
+
+
 def test_send_private_msg_keeps_mapping_and_para_conversion():
     recorder = _Recorder()
     event = _Event(recorder, {'user_id': 'wxid_abc', 'message': 'hello'})
 
     actionRouter.send_private_msg(event)
 
-    assert recorder.calls == [(
-        'send',
-        {
-            'send_type': 'private',
-            'target_id': 'wxid_abc',
-            'message': eventRouter.paraRvMapper('hello'),
-        }
-    )]
+    assert len(recorder.calls) == 1
+    action, payload = recorder.calls[0]
+    assert action == 'send'
+    assert payload['send_type'] == 'private'
+    assert payload['target_id'] == 'wxid_abc'
+    _assert_old_string_message(payload['message'])
     assert event.rvData is None
 
 
@@ -68,15 +71,13 @@ def test_send_group_msg_keeps_host_mapping():
 
     actionRouter.send_group_msg(event)
 
-    assert recorder.calls == [(
-        'send',
-        {
-            'send_type': 'group',
-            'target_id': '100',
-            'message': eventRouter.paraRvMapper('hello'),
-            'host_id': '200',
-        }
-    )]
+    assert len(recorder.calls) == 1
+    action, payload = recorder.calls[0]
+    assert action == 'send'
+    assert payload['send_type'] == 'group'
+    assert payload['target_id'] == '100'
+    assert payload['host_id'] == '200'
+    _assert_old_string_message(payload['message'])
     assert event.rvData is None
 
 
@@ -94,15 +95,13 @@ def test_send_msg_keeps_private_and_group_routes(message_type, params, expected_
 
     actionRouter.send_msg(event)
 
-    assert recorder.calls == [(
-        'send',
-        {
-            'send_type': message_type,
-            'target_id': expected_target,
-            'message': eventRouter.paraRvMapper('hello'),
-            'host_id': expected_host,
-        }
-    )]
+    assert len(recorder.calls) == 1
+    action, payload = recorder.calls[0]
+    assert action == 'send'
+    assert payload['send_type'] == message_type
+    assert payload['target_id'] == expected_target
+    assert payload['host_id'] == expected_host
+    _assert_old_string_message(payload['message'])
     assert event.rvData is None
 
 

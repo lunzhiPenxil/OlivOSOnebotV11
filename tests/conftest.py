@@ -1,86 +1,66 @@
+"""Bootstrap tests against a real OlivOS checkout and isolate plugin state."""
+
 import importlib
+import importlib.util
+import os
 import sys
-import types
+import tempfile
+from pathlib import Path
 
 import pytest
 
 
-class _FakePara(object):
-    def __init__(self, para_type, data):
-        self.type = para_type
-        self.data = data
+REPO_ROOT = Path(__file__).resolve().parents[1]
+TESTS_ROOT = Path(__file__).resolve().parent
+ORIGINAL_CWD = Path.cwd()
+BOOTSTRAP_DIRECTORY = None
 
 
-class _FakeParaFactory(object):
-    @staticmethod
-    def at(**kwargs):
-        return _FakePara('at', kwargs)
+def _resolve_olivos_source():
+    candidates = []
+    configured = os.environ.get('OLIVOS_SOURCE')
+    if configured:
+        candidates.append(Path(configured).expanduser())
+    candidates.extend([
+        REPO_ROOT / '.ci' / 'OlivOS',
+        REPO_ROOT.parent / 'OlivOS-dev',
+        REPO_ROOT.parent / 'OlivOS',
+    ])
+    for candidate in candidates:
+        if (candidate / 'OlivOS' / '__init__.py').is_file():
+            return candidate.resolve()
 
-    @staticmethod
-    def text(**kwargs):
-        return _FakePara('text', kwargs)
+
+OLIVOS_SOURCE = _resolve_olivos_source()
+for entry in (str(TESTS_ROOT), str(REPO_ROOT)):
+    if entry not in sys.path:
+        sys.path.insert(0, entry)
+if OLIVOS_SOURCE is not None and str(OLIVOS_SOURCE) not in sys.path:
+    sys.path.insert(0, str(OLIVOS_SOURCE))
 
 
-class _FakeMessageTemplet(object):
-    def __init__(self, mode, data):
-        self.mode = mode
-        self.data = data
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, _FakeMessageTemplet) and
-            self.mode == other.mode and
-            self.data == other.data
+def pytest_configure(config):
+    if OLIVOS_SOURCE is None:
+        raise pytest.UsageError(
+            '未找到 OlivOS 源码。请设置 OLIVOS_SOURCE，或把主机仓库 checkout 到 .ci/OlivOS。'
         )
 
 
-class _FakeEvent(object):
-    def __init__(self, sdk_event=None, log=None):
-        self.sdk_event = sdk_event
-        self.log = log
-        self.bot_info = getattr(sdk_event, 'bot_info', None)
+def pytest_sessionstart(session):
+    global BOOTSTRAP_DIRECTORY
+    # 导入 OlivOS 会按当前工作目录创建空的 lib/、plugin/ 等目录。
+    BOOTSTRAP_DIRECTORY = tempfile.TemporaryDirectory(prefix='olivos-onebot-v11-tests-')
+    os.chdir(BOOTSTRAP_DIRECTORY.name)
 
 
-class _FakeSDKEvent(object):
-    def __init__(self, bot_info, fakename):
-        self.bot_info = bot_info
-        self.fakename = fakename
+def pytest_collection_finish(session):
+    os.chdir(ORIGINAL_CWD)
 
 
-class _FakeShallow(object):
-    pass
-
-
-def _install_olivos_stub():
-    for module_name in list(sys.modules):
-        if module_name == 'OlivOS' or module_name.startswith('OlivOS.'):
-            del sys.modules[module_name]
-
-    olivos = types.ModuleType('OlivOS')
-    api = types.ModuleType('OlivOS.API')
-    plugin_api = types.ModuleType('OlivOS.pluginAPI')
-    content_api = types.ModuleType('OlivOS.contentAPI')
-    message_api = types.ModuleType('OlivOS.messageAPI')
-
-    api.Event = _FakeEvent
-    plugin_api.shallow = _FakeShallow
-    content_api.fake_sdk_event = lambda bot_info, fakename: _FakeSDKEvent(bot_info, fakename)
-    message_api.PARA = _FakeParaFactory
-    message_api.Message_templet = _FakeMessageTemplet
-
-    olivos.API = api
-    olivos.pluginAPI = plugin_api
-    olivos.contentAPI = content_api
-    olivos.messageAPI = message_api
-
-    sys.modules['OlivOS'] = olivos
-    sys.modules['OlivOS.API'] = api
-    sys.modules['OlivOS.pluginAPI'] = plugin_api
-    sys.modules['OlivOS.contentAPI'] = content_api
-    sys.modules['OlivOS.messageAPI'] = message_api
-
-
-_install_olivos_stub()
+def pytest_sessionfinish(session, exitstatus):
+    os.chdir(ORIGINAL_CWD)
+    if BOOTSTRAP_DIRECTORY is not None:
+        BOOTSTRAP_DIRECTORY.cleanup()
 
 
 def _reset_plugin_state():
@@ -115,7 +95,14 @@ def _reset_plugin_state():
 
 
 @pytest.fixture(autouse=True)
-def reset_plugin_state():
+def isolated_installation(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    for name in ('OLIVOS_WEBUI_HOST', 'OLIVOS_WEBUI_PORT'):
+        monkeypatch.delenv(name, raising=False)
+
+
+@pytest.fixture(autouse=True)
+def reset_plugin_state(isolated_installation):
     _reset_plugin_state()
     yield
     _reset_plugin_state()

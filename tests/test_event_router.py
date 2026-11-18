@@ -235,15 +235,16 @@ def test_para_reverse_mapper_keeps_existing_message_formats():
         {'type': 'at', 'data': {'qq': '42'}},
         {'type': 'text', 'data': {'text': 'hello'}},
     ])
-    assert message.mode == 'olivos_para'
+    assert message.mode_rx == 'olivos_para'
     assert message.data[0].type == 'at'
-    assert message.data[0].data == {'id': '42'}
+    assert message.data[0].data['id'] == '42'
+    assert message.data[0].data['name'] is None
     assert message.data[1].type == 'text'
     assert message.data[1].data == {'text': 'hello'}
 
     fallback = eventRouter.paraRvMapper('hello')
-    assert fallback.mode == 'old_string'
-    assert fallback.data == 'hello'
+    assert fallback.mode_rx == 'old_string'
+    assert fallback.get('old_string') == 'hello'
 
 
 def test_rx_event_routes_heartbeat_to_server_and_reverse_link(monkeypatch):

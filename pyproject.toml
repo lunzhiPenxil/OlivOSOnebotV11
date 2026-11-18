@@ -1,0 +1,58 @@
+
+[build-system]
+requires = ["setuptools>=63.2.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "olivos-plugin-OlivOSOnebotV11"
+version = "0.9.6"
+description = "基于 OlivOS 的 OneBot V11 协议端"
+readme = "README.md"
+requires-python = ">=3.7"
+authors = [
+    {name = "lunzhiPenxil"}
+]
+license = {text = "AGPLv3 License"}
+classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "olivos",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4,<9",
+    "pytest-cov>=5,<7",
+]
+
+[project.urls]
+Repository = "https://github.com/lunzhiPenxil/OlivOSOnebotV11"
+Issues = "https://github.com/lunzhiPenxil/OlivOSOnebotV11/issues"
+
+[tool.setuptools]
+packages = ["OlivOSOnebotV11"]
+
+[tool.setuptools.package-data]
+OlivOSOnebotV11 = ["app.json", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+
+[tool.coverage.run]
+source = ["OlivOSOnebotV11"]
+branch = true
+relative_files = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+
+[tool.coverage.html]
+directory = "test-results/html"

@@ -130,8 +130,8 @@ def test_http_post_applies_reply_quick_action():
 
     assert len(server_obj.requests) == 1
     assert len(event.replies) == 1
-    assert event.replies[0].mode == 'old_string'
-    assert event.replies[0].data == 'pong'
+    assert event.replies[0].mode_rx == 'old_string'
+    assert event.replies[0].get('old_string') == 'pong'
 
 
 def test_http_post_applies_group_quick_actions():
@@ -167,7 +167,8 @@ def test_http_post_quick_reply_supports_auto_escape_and_at_sender():
 
     assert len(event.replies) == 1
     message = event.replies[0]
-    assert message.mode == 'olivos_para'
+    assert message.mode_rx == 'olivos_para'
     assert [para.type for para in message.data] == ['at', 'text']
-    assert message.data[0].data == {'id': '42'}
+    assert message.data[0].data['id'] == '42'
+    assert message.data[0].data['name'] is None
     assert message.data[1].data == {'text': '[CQ:face,id=1]'}

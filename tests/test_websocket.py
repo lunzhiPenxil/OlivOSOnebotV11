@@ -85,7 +85,11 @@ def test_is_inuse_detects_listening_socket():
 def test_tx_event_keeps_echo_status_and_data_contract():
     main.ProcObj = _Proc()
     main.confDict['bot-a'] = {'hash': 'bot-a', 'port': 43000}
-    main.botInfoDict['bot-a'] = SimpleNamespace(hash='bot-a', id=42)
+    main.botInfoDict['bot-a'] = SimpleNamespace(
+        hash='bot-a',
+        id=42,
+        platform={'sdk': 'onebot', 'platform': 'qq', 'model': 'default'},
+    )
     websocket = _WebSocket(
         data=json.dumps({
             'action': 'get_msg',
@@ -120,8 +124,16 @@ def test_tx_event_resolves_account_from_server_port():
     main.ProcObj = _Proc()
     main.confDict['bot-a'] = {'hash': 'bot-a', 'port': 43001}
     main.confDict['bot-b'] = {'hash': 'bot-b', 'port': 43000}
-    main.botInfoDict['bot-a'] = SimpleNamespace(hash='bot-a', id=41)
-    main.botInfoDict['bot-b'] = SimpleNamespace(hash='bot-b', id=42)
+    main.botInfoDict['bot-a'] = SimpleNamespace(
+        hash='bot-a',
+        id=41,
+        platform={'sdk': 'onebot', 'platform': 'qq', 'model': 'default'},
+    )
+    main.botInfoDict['bot-b'] = SimpleNamespace(
+        hash='bot-b',
+        id=42,
+        platform={'sdk': 'onebot', 'platform': 'qq', 'model': 'default'},
+    )
     websocketServer.clientDict['43000'] = [{'info': {'hash': 'bot-b'}}]
     websocket = _WebSocket(
         data=json.dumps({
@@ -152,7 +164,11 @@ def test_tx_event_ignores_malformed_requests(raw):
 
 def test_tx_event_uses_reverse_link_hash_and_reply_channel():
     main.ProcObj = _Proc()
-    main.botInfoDict['bot-a'] = SimpleNamespace(hash='bot-a', id=42)
+    main.botInfoDict['bot-a'] = SimpleNamespace(
+        hash='bot-a',
+        id=42,
+        platform={'sdk': 'onebot', 'platform': 'qq', 'model': 'default'},
+    )
     websocket = _WebSocket(
         data=json.dumps({
             'action': 'get_login_info',
@@ -179,7 +195,7 @@ def test_websockets_server_handles_action_and_thread_safe_send(monkeypatch):
     main.botInfoDict['bot-a'] = SimpleNamespace(
         hash='bot-a',
         id=42,
-        platform={'platform': 'qq'},
+        platform={'sdk': 'onebot', 'platform': 'qq', 'model': 'default'},
     )
     monkeypatch.setattr(eventRouter.OlivOS.API, 'Event', _LoginEvent)
 
